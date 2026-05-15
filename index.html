@@ -807,20 +807,28 @@ function licenceBadge(licenceUrl) {
 
 // Map rendering
 // Build popup content for a single record
+// Helper: get the best display name for a record (common name preferred, scientific fallback)
+function getDisplayName(rec) {
+  return rec.vernacularName || (rec.taxonKey && commonNameCache[rec.taxonKey]) || rec.scientificName || rec.species || 'Unknown';
+}
+
 function buildRecordPage(rec) {
-  const commonName = rec.vernacularName ? '<div style="color:#6b6960;font-size:11px;margin-top:1px;">' + rec.vernacularName + '</div>' : '';
-  const cls    = rec.class ? '<div style="color:#9b9890;font-size:11px;font-style:italic;">' + rec.class + '</div>' : '';
-  const date   = rec.eventDate   ? '<div style="margin-top:4px;font-size:12px;"><b>Date:</b> '   + rec.eventDate + '</div>' : '';
-  const source = rec.datasetName ? '<div style="font-size:12px;"><b>Source:</b> ' + rec.datasetName + '</div>' : '';
-  const uncert = rec.coordinateUncertaintyInMeters ? '<div style="font-size:11px;color:#9b9890;">Coord. uncertainty: ' + parseFloat(rec.coordinateUncertaintyInMeters).toLocaleString() + ' m</div>' : '';
+  const common  = rec.vernacularName || (rec.taxonKey && commonNameCache[rec.taxonKey]) || '';
+  const primary = common
+    ? '<div style="font-weight:600;font-size:13px;">' + common + '</div>' +
+      '<div style="color:#9b9890;font-size:11px;font-style:italic;margin-top:1px;">' + (rec.scientificName || '') + '</div>'
+    : '<div style="font-weight:600;font-size:13px;">' + (rec.scientificName || 'Unknown') + '</div>';
+  const cls     = rec.class ? '<div style="color:#9b9890;font-size:11px;">' + rec.class + '</div>' : '';
+  const date    = rec.eventDate   ? '<div style="margin-top:4px;font-size:12px;"><b>Date:</b> ' + rec.eventDate + '</div>' : '';
+  const source  = rec.datasetName ? '<div style="font-size:12px;"><b>Source:</b> ' + rec.datasetName + '</div>' : '';
+  const uncert  = rec.coordinateUncertaintyInMeters ? '<div style="font-size:11px;color:#9b9890;">Coord. uncertainty: ' + parseFloat(rec.coordinateUncertaintyInMeters).toLocaleString() + ' m</div>' : '';
   const geoWarn = rec.hasGeospatialIssues === 'true' ? '<div style="font-size:11px;color:#8a2c2c;margin-top:2px;">\u26a0 Geospatial issues flagged</div>' : '';
-  const gbifId = rec.gbifID;
-  const link   = gbifId ? '<div style="margin-top:4px;"><a href="https://www.gbif.org/occurrence/' + gbifId + '" target="_blank" rel="noopener" style="color:#2a7a58;font-size:12px;">View on GBIF \u2197</a></div>' : '';
+  const gbifId  = rec.gbifID;
+  const link    = gbifId ? '<div style="margin-top:4px;"><a href="https://www.gbif.org/occurrence/' + gbifId + '" target="_blank" rel="noopener" style="color:#2a7a58;font-size:12px;">View on GBIF \u2197</a></div>' : '';
   const photoId = 'gbif-photo-' + (gbifId || Math.random().toString(36).slice(2));
   return {
     html: '<div id="' + photoId + '" style="margin-bottom:5px;"></div>' +
-          '<div style="font-weight:600;font-size:13px;">' + (rec.scientificName || 'Unknown') + '</div>' +
-          commonName + cls + date + source + uncert + geoWarn + link,
+          primary + cls + date + source + uncert + geoWarn + link,
     photoId,
     taxonKey: rec.taxonKey,
     scientificName: rec.scientificName || ''
@@ -837,7 +845,7 @@ async function loadPopupPhoto(photoId, taxonKey, sciName) {
   if (photo) {
     slot.innerHTML =
       '<img src="' + photo.url + '" alt="' + (sciName || '') + '" ' +
-      'style="width:100%;max-height:140px;object-fit:cover;border-radius:4px;display:block;" ' +
+      'style="width:100%;max-height:160px;object-fit:contain;background:#f3f2ee;border-radius:4px;display:block;" ' +
       'onerror="this.parentElement.innerHTML=\'\'"> ' +
       '<div style="font-size:10px;color:#9b9890;margin-top:3px;line-height:1.4;">' +
       licenceBadge(photo.licence) + (photo.photographer || '') + '</div>';
@@ -847,54 +855,75 @@ async function loadPopupPhoto(photoId, taxonKey, sciName) {
 }
 
 window._gbifPopupState = {};
+
+// Navigation: only update the stable inner divs — never call setContent() which forces
+// Leaflet to re-render and close the popup
 window._gbifPopupNav = function(pid, dir) {
   const state = window._gbifPopupState[pid];
   if (!state) return;
   state.idx = (state.idx + dir + state.sorted.length) % state.sorted.length;
-  const rec = state.sorted[state.idx];
+  const idx = state.idx;
+  const rec = state.sorted[idx];
   const page = buildRecordPage(rec);
   const total = state.sorted.length;
-  const speciesSet = [...new Set(state.sorted.map(r => r.scientificName || r.species).filter(Boolean))];
-  const summ = speciesSet.slice(0, 6).join(', ') + (speciesSet.length > 6 ? ' +' + (speciesSet.length - 6) + ' more' : '');
-  const header = '<div style="font-size:11px;color:#2a7a58;font-weight:600;margin-bottom:5px;line-height:1.4;">\ud83d\udccd ' + total + ' records at this location<br><span style="font-weight:400;color:#6b6960;">' + summ + '</span></div>';
-  const counter = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;padding-bottom:6px;border-bottom:1px solid #eee;">' +
-    '<button onclick="window._gbifPopupNav(\'' + pid + '\',-1)" style="border:1px solid #ddd;background:#f5f5f3;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:14px;">\u2039</button>' +
-    '<span style="font-size:11px;color:#6b6960;">Record <b>' + (state.idx+1) + '</b> of <b>' + total + '</b></span>' +
-    '<button onclick="window._gbifPopupNav(\'' + pid + '\',1)" style="border:1px solid #ddd;background:#f5f5f3;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:14px;">\u203a</button>' +
-    '</div>';
-  state.popup.setContent(header + counter + page.html);
-  setTimeout(() => loadPopupPhoto(page.photoId, rec.taxonKey, rec.scientificName), 50);
+
+  const counterEl = document.getElementById(pid + '-counter');
+  if (counterEl) counterEl.innerHTML = 'Record <b>' + (idx + 1) + '</b> of <b>' + total + '</b>';
+
+  const bodyEl = document.getElementById(pid + '-body');
+  if (bodyEl) {
+    bodyEl.innerHTML = page.html;
+    setTimeout(() => loadPopupPhoto(page.photoId, rec.taxonKey, rec.scientificName), 30);
+  }
 };
 
 function makeStackedPopup(stackedRecords) {
   const sorted = stackedRecords.slice().sort((a, b) => ((b.eventDate||'').localeCompare(a.eventDate||'')));
   const total = sorted.length;
-  const speciesSet = [...new Set(sorted.map(r => r.scientificName || r.species).filter(Boolean))];
-  const summ = speciesSet.slice(0, 6).join(', ') + (speciesSet.length > 6 ? ' +' + (speciesSet.length - 6) + ' more' : '');
   const popupId = 'mp-' + Math.random().toString(36).slice(2);
 
-  const popup = L.popup({ maxWidth: 290, minWidth: 240 });
-  window._gbifPopupState[popupId] = { idx: 0, sorted, popup };
-
-  function buildContent(idx) {
-    const rec = sorted[idx];
-    const page = buildRecordPage(rec);
-    const header = total > 1
-      ? '<div style="font-size:11px;color:#2a7a58;font-weight:600;margin-bottom:5px;line-height:1.4;">\ud83d\udccd ' + total + ' records at this location<br><span style="font-weight:400;color:#6b6960;">' + summ + '</span></div>'
-      : '';
-    const counter = total > 1
-      ? '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;padding-bottom:6px;border-bottom:1px solid #eee;">' +
-          '<button onclick="window._gbifPopupNav(\'' + popupId + '\',-1)" style="border:1px solid #ddd;background:#f5f5f3;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:14px;">\u2039</button>' +
-          '<span style="font-size:11px;color:#6b6960;">Record <b>' + (idx+1) + '</b> of <b>' + total + '</b></span>' +
-          '<button onclick="window._gbifPopupNav(\'' + popupId + '\',1)" style="border:1px solid #ddd;background:#f5f5f3;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:14px;">\u203a</button>' +
-        '</div>'
-      : '';
-    return { fullHtml: header + counter + page.html, page };
+  function buildSpeciesChips() {
+    const seen = new Map();
+    sorted.forEach(r => {
+      const sci = r.scientificName || r.species || '';
+      if (sci && !seen.has(sci)) seen.set(sci, getDisplayName(r));
+    });
+    const names = [...seen.values()];
+    const chips = names.map(n =>
+      '<span style="display:inline-block;background:#e8f4ef;border:0.5px solid #6dba9a;color:#1a5940;'
+      + 'border-radius:10px;padding:2px 7px;font-size:10.5px;white-space:nowrap;margin:2px 2px 2px 0;">' + n + '</span>'
+    ).join('');
+    return '<div style="display:flex;flex-wrap:wrap;max-height:60px;overflow-y:auto;margin-top:3px;gap:0;">' + chips + '</div>';
   }
 
-  const { fullHtml, page } = buildContent(0);
-  popup.setContent(fullHtml);
-  popup.on('add', () => setTimeout(() => loadPopupPhoto(page.photoId, sorted[0].taxonKey, sorted[0].scientificName), 50));
+  function buildShell() {
+    const rec0  = sorted[0];
+    const page0 = buildRecordPage(rec0);
+    const header = total > 1
+      ? '<div style="font-size:11px;color:#2a7a58;font-weight:600;margin-bottom:5px;line-height:1.5;">'
+          + '\ud83d\udccd ' + total + ' records · ' + new Set(sorted.map(r => r.scientificName||r.species).filter(Boolean)).size + ' species'
+          + buildSpeciesChips()
+        + '</div>'
+      : '';
+    const nav = total > 1
+      ? '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;padding-bottom:6px;border-bottom:1px solid #eee;">'
+          + '<button onclick="event.stopPropagation();window._gbifPopupNav(\'' + popupId + '\',-1)" style="border:1px solid #ddd;background:#f5f5f3;border-radius:4px;padding:2px 10px;cursor:pointer;font-size:16px;line-height:1;">\u2039</button>'
+          + '<span id="' + popupId + '-counter" style="font-size:11px;color:#6b6960;">Record <b>1</b> of <b>' + total + '</b></span>'
+          + '<button onclick="event.stopPropagation();window._gbifPopupNav(\'' + popupId + '\',1)" style="border:1px solid #ddd;background:#f5f5f3;border-radius:4px;padding:2px 10px;cursor:pointer;font-size:16px;line-height:1;">\u203a</button>'
+        + '</div>'
+      : '';
+    return header + nav + '<div id="' + popupId + '-body">' + page0.html + '</div>';
+  }
+
+  const popup = L.popup({ maxWidth: 290, minWidth: 240, autoPan: true });
+  window._gbifPopupState[popupId] = { idx: 0, sorted, popup };
+
+  popup.setContent(buildShell());
+  popup.on('add', () => {
+    const rec0  = sorted[0];
+    const page0 = buildRecordPage(rec0);
+    setTimeout(() => loadPopupPhoto(page0.photoId, rec0.taxonKey, rec0.scientificName), 50);
+  });
   return popup;
 }
 
