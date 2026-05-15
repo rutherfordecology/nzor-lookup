@@ -311,15 +311,15 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
 const COMPLEXITY_THRESHOLD = 500;
 const POLY_COLOURS = ['#2a7a58','#2c5f8a','#8a6020','#8a2c2c','#5a2a7a','#1a5a6a'];
 const TAXON_COLOURS = {
-  'Aves':           { colour: '#2563EB', label: 'Aves (birds)' },
-  'Mammalia':       { colour: '#7C3AED', label: 'Mammalia' },
-  'Reptilia':       { colour: '#D97706', label: 'Reptilia' },
-  'Amphibia':       { colour: '#059669', label: 'Amphibia' },
-  'Insecta':        { colour: '#DC2626', label: 'Insecta' },
-  'Plantae':        { colour: '#16A34A', label: 'Plantae' },
-  'Fungi':          { colour: '#92400E', label: 'Fungi' },
-  'Actinopterygii': { colour: '#0891B2', label: 'Fish' },
-  'Other':          { colour: '#6B7280', label: 'Other' }
+  'Aves':              { colour: '#2563EB', label: 'Aves (birds)' },
+  'Mammalia':          { colour: '#7C3AED', label: 'Mammalia' },
+  'Reptilia':          { colour: '#D97706', label: 'Reptilia' },
+  'Amphibia':          { colour: '#059669', label: 'Amphibia' },
+  'Insecta':           { colour: '#DC2626', label: 'Insecta' },
+  'Plantae':           { colour: '#16A34A', label: 'Plantae' },
+  'Fungi':             { colour: '#92400E', label: 'Fungi' },
+  'Fish':              { colour: '#0891B2', label: 'Fish' },
+  'Other':             { colour: '#6B7280', label: 'Other' }
 };
 const CSV_FIELDS = ['gbifID','eventDate','year','month','day','scientificName','vernacularName','kingdom','phylum','class','order','family','genus','species','decimalLatitude','decimalLongitude','coordinateUncertaintyInMeters','basisOfRecord','occurrenceID','taxonKey','datasetName','country','stateProvince','locality','recordedBy'];
 
@@ -395,8 +395,15 @@ document.getElementById('clClearSel').addEventListener('click', () => clearSpeci
 function setStatus(msg, type) { statusBar.textContent = msg; statusBar.className = 'status-bar ' + type; statusBar.style.display = 'block'; }
 function setProgress(pct, label) { progressWrap.style.display = 'block'; progressFill.style.width = pct + '%'; progressLabel.textContent = label; }
 
+const FISH_CLASSES = new Set(['Actinopterygii','Chondrichthyes','Elasmobranchii','Holocephali','Petromyzontida','Myxini','Sarcopterygii','Cephalaspidomorphi']);
+const TETRAPOD_CLASSES = new Set(['Aves','Mammalia','Reptilia','Amphibia']);
+
 function getTaxonGroup(r) {
-  if (TAXON_COLOURS[r.class]) return r.class;
+  const cls = r.class || '';
+  if (cls && TAXON_COLOURS[cls]) return cls;
+  if (FISH_CLASSES.has(cls)) return 'Fish';
+  // Classless Chordata that aren't tetrapods → fish
+  if (r.phylum === 'Chordata' && !cls && !TETRAPOD_CLASSES.has(cls)) return 'Fish';
   if (r.kingdom === 'Plantae') return 'Plantae';
   if (r.kingdom === 'Fungi') return 'Fungi';
   return 'Other';
@@ -663,8 +670,7 @@ function filterChecklistSearch() {
 function filterChecklistByTaxon() {
   document.querySelectorAll('.cl-group-header').forEach(header => {
     const groupMatch = Object.entries(TAXON_COLOURS).find(entry => entry[1].label === header.textContent);
-    const groupKey   = groupMatch ? groupMatch[0] : 'Other';
-    const visible    = activeFilters.has(groupKey);
+    const groupKey   = groupMatch ? groupMatch[0] : 'Other';    const visible    = activeFilters.has(groupKey);
     header.style.display = visible ? '' : 'none';
     let el = header.nextElementSibling;
     while (el && !el.classList.contains('cl-group-header')) {
