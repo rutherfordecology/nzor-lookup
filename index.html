@@ -144,6 +144,17 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
 .note a { color: var(--green); text-decoration: none; }
 .note a:hover { text-decoration: underline; }
 
+.taxon-dropdown { position: relative; }
+.taxon-dropdown-trigger { display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border); border-radius: var(--radius); padding: 6px 9px; font-size: 13px; cursor: pointer; background: var(--surface); user-select: none; }
+.taxon-dropdown-trigger:hover { border-color: var(--green); }
+.taxon-arrow { font-size: 10px; color: var(--text3); }
+.taxon-dropdown-menu { position: absolute; top: 100%; left: 0; right: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); z-index: 1000; max-height: 280px; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-top: 2px; }
+.taxon-group-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text3); padding: 6px 10px 3px; background: var(--surface2); border-top: 0.5px solid var(--border); }
+.taxon-item { display: flex; align-items: center; gap: 7px; padding: 5px 10px; font-size: 12.5px; cursor: pointer; transition: background 0.1s; }
+.taxon-item:hover { background: var(--green-light); }
+.taxon-item input[type=checkbox] { width: 13px; height: 13px; accent-color: var(--green); flex-shrink: 0; }
+.taxon-all { border-bottom: 0.5px solid var(--border); font-weight: 500; }
+
 #map-wrap { position: relative; width: 100%; height: calc(100vh - 52px); overflow: hidden; }
 #map { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
 </style>
@@ -187,37 +198,41 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
         <div class="field"><label>Date to</label><input type="date" id="dateTo"></div>
       </div>
       <div class="field">
-        <label>Taxon group</label>
-        <select id="taxonGroup">
-          <option value="">All species</option>
-          <optgroup label="Vertebrates">
-            <option value="212">Aves (birds)</option>
-            <option value="133">Mammalia</option>
-            <option value="358">Reptilia</option>
-            <option value="131">Amphibia</option>
-            <option value="fish">Fish</option>
-          </optgroup>
-          <optgroup label="Invertebrates">
-            <option value="216">Insecta</option>
-            <option value="367">Arachnida</option>
-            <option value="crustacea">Crustacea</option>
-            <option value="52">Mollusca</option>
-            <option value="50">Echinodermata</option>
-            <option value="43">Cnidaria</option>
-            <option value="42">Annelida</option>
-            <option value="1">Other Animalia</option>
-          </optgroup>
-          <optgroup label="Plants">
-            <option value="angiosperms">Angiosperms</option>
-            <option value="194">Gymnosperms</option>
-            <option value="113551061">Ferns &amp; allies</option>
-            <option value="311">Bryophytes (mosses)</option>
-          </optgroup>
-          <optgroup label="Other">
-            <option value="algae">Algae</option>
-            <option value="4">Fungi</option>
-          </optgroup>
-        </select>
+        <label>Taxon groups</label>
+        <div class="taxon-dropdown" id="taxonDropdown">
+          <div class="taxon-dropdown-trigger" id="taxonTrigger">
+            <span id="taxonTriggerLabel">All taxa</span>
+            <span class="taxon-arrow">&#9660;</span>
+          </div>
+          <div class="taxon-dropdown-menu" id="taxonMenu" style="display:none">
+            <label class="taxon-item taxon-all">
+              <input type="checkbox" id="taxonAll"> <span>All taxa</span>
+            </label>
+            <div class="taxon-group-label">Vertebrates</div>
+            <label class="taxon-item"><input type="checkbox" value="212" class="taxon-cb"> Aves (birds)</label>
+            <label class="taxon-item"><input type="checkbox" value="133" class="taxon-cb"> Mammalia</label>
+            <label class="taxon-item"><input type="checkbox" value="358" class="taxon-cb"> Reptilia</label>
+            <label class="taxon-item"><input type="checkbox" value="131" class="taxon-cb"> Amphibia</label>
+            <label class="taxon-item"><input type="checkbox" value="fish" class="taxon-cb"> Fish</label>
+            <div class="taxon-group-label">Invertebrates</div>
+            <label class="taxon-item"><input type="checkbox" value="216" class="taxon-cb"> Insecta</label>
+            <label class="taxon-item"><input type="checkbox" value="367" class="taxon-cb"> Arachnida</label>
+            <label class="taxon-item"><input type="checkbox" value="crustacea" class="taxon-cb"> Crustacea</label>
+            <label class="taxon-item"><input type="checkbox" value="52" class="taxon-cb"> Mollusca</label>
+            <label class="taxon-item"><input type="checkbox" value="50" class="taxon-cb"> Echinodermata</label>
+            <label class="taxon-item"><input type="checkbox" value="43" class="taxon-cb"> Cnidaria</label>
+            <label class="taxon-item"><input type="checkbox" value="42" class="taxon-cb"> Annelida</label>
+            <label class="taxon-item"><input type="checkbox" value="1" class="taxon-cb"> Other Animalia</label>
+            <div class="taxon-group-label">Plants</div>
+            <label class="taxon-item"><input type="checkbox" value="angiosperms" class="taxon-cb"> Angiosperms</label>
+            <label class="taxon-item"><input type="checkbox" value="194" class="taxon-cb"> Gymnosperms</label>
+            <label class="taxon-item"><input type="checkbox" value="113551061" class="taxon-cb"> Ferns &amp; allies</label>
+            <label class="taxon-item"><input type="checkbox" value="311" class="taxon-cb"> Bryophytes</label>
+            <div class="taxon-group-label">Other</div>
+            <label class="taxon-item"><input type="checkbox" value="algae" class="taxon-cb"> Algae</label>
+            <label class="taxon-item"><input type="checkbox" value="4" class="taxon-cb"> Fungi</label>
+          </div>
+        </div>
       </div>
       <div class="check-row">
         <input type="checkbox" id="coordOnly" checked>
@@ -813,15 +828,77 @@ const GBIF_USER  = 'rutherfordecology';
 const GBIF_PASS  = 'GBIF2026';
 const GBIF_EMAIL = 'rutherfordecology@gmail.com';
 
+// Taxon checkbox dropdown
+const taxonTrigger = document.getElementById('taxonTrigger');
+const taxonMenu    = document.getElementById('taxonMenu');
+const taxonAll     = document.getElementById('taxonAll');
+const taxonCbs     = () => [...document.querySelectorAll('.taxon-cb')];
+
+function updateTaxonLabel() {
+  const checked = taxonCbs().filter(cb => cb.checked);
+  const label = taxonAll.checked ? 'All taxa' :
+    checked.length === 0 ? 'No groups selected' :
+    checked.length <= 3 ? checked.map(cb => cb.closest('label').textContent.trim()).join(', ') :
+    checked.length + ' groups selected';
+  document.getElementById('taxonTriggerLabel').textContent = label;
+}
+
+taxonTrigger.addEventListener('click', () => {
+  const isOpen = taxonMenu.style.display !== 'none';
+  taxonMenu.style.display = isOpen ? 'none' : 'block';
+});
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#taxonDropdown')) taxonMenu.style.display = 'none';
+});
+
+taxonAll.addEventListener('change', () => {
+  taxonCbs().forEach(cb => { cb.checked = false; cb.disabled = taxonAll.checked; });
+  updateTaxonLabel();
+});
+
+taxonCbs().forEach(cb => cb.addEventListener('change', () => {
+  if (cb.checked) { taxonAll.checked = false; taxonAll.disabled = false; }
+  updateTaxonLabel();
+}));
+
+function getSelectedTaxonKeys() {
+  if (taxonAll.checked) return []; // empty = all taxa
+  return taxonCbs().filter(cb => cb.checked).map(cb => cb.value);
+}
+
+function buildTaxonPredicates(keys) {
+  if (keys.length === 0) return null; // no filter
+  const preds = keys.map(key => {
+    if (key === 'fish') return { type: 'and', predicates: [
+      { type: 'equals', key: 'TAXON_KEY', value: '44' },
+      { type: 'not', predicate: { type: 'in', key: 'TAXON_KEY', values: ['212','133','358','131','207','211'] }}
+    ]};
+    if (key === 'crustacea') return { type: 'in', key: 'TAXON_KEY', values: ['229','203','284','367'] };
+    if (key === 'angiosperms') return { type: 'in', key: 'TAXON_KEY', values: ['220','162846864'] };
+    if (key === 'algae') return { type: 'or', predicates: [
+      { type: 'equals', key: 'KINGDOM_KEY', value: '4' },
+      { type: 'in', key: 'TAXON_KEY', values: ['3241496','3153'] }
+    ]};
+    if (key === '1') return { type: 'and', predicates: [
+      { type: 'equals', key: 'KINGDOM_KEY', value: '1' },
+      { type: 'not', predicate: { type: 'in', key: 'TAXON_KEY', values: ['44','216','367','229','203','52','50','43','42'] }}
+    ]};
+    return { type: 'equals', key: 'TAXON_KEY', value: key };
+  });
+  return preds.length === 1 ? preds[0] : { type: 'or', predicates: preds };
+}
+
 // GBIF download API fetch
 runBtn.addEventListener('click', async () => {
   if (polygons.length === 0) return;
   runBtn.disabled = true; clearResults();
+  taxonMenu.style.display = 'none';
 
-  const dateFrom  = document.getElementById('dateFrom').value;
-  const dateTo    = document.getElementById('dateTo').value || new Date().toISOString().split('T')[0];
-  const taxonKey  = document.getElementById('taxonGroup').value;
-  const coordOnly = document.getElementById('coordOnly').checked;
+  const dateFrom   = document.getElementById('dateFrom').value;
+  const dateTo     = document.getElementById('dateTo').value || new Date().toISOString().split('T')[0];
+  const coordOnly  = document.getElementById('coordOnly').checked;
+  const taxonKeys  = getSelectedTaxonKeys();
   const allFetched = [];
 
   for (let pi = 0; pi < polygons.length; pi++) {
@@ -839,29 +916,8 @@ runBtn.addEventListener('click', async () => {
       { type: 'greaterThanOrEquals', key: 'YEAR', value: String(new Date(dateFrom).getFullYear()) },
       { type: 'lessThanOrEquals',    key: 'YEAR', value: String(new Date(dateTo).getFullYear()) }
     ]});
-    if (taxonKey === 'fish') {
-      predicates.push({ type: 'and', predicates: [
-        { type: 'equals', key: 'TAXON_KEY', value: '44' },
-        { type: 'not', predicate: { type: 'in', key: 'TAXON_KEY', values: ['212','133','358','131','207','211'] }}
-      ]});
-    } else if (taxonKey === 'crustacea') {
-      predicates.push({ type: 'in', key: 'TAXON_KEY', values: ['229','203','284','367'] }); // Malacostraca, Maxillopoda, Branchiopoda, Ostracoda
-    } else if (taxonKey === 'angiosperms') {
-      predicates.push({ type: 'in', key: 'TAXON_KEY', values: ['220','162846864'] }); // Magnoliopsida, Liliopsida
-    } else if (taxonKey === 'algae') {
-      predicates.push({ type: 'or', predicates: [
-        { type: 'equals', key: 'KINGDOM_KEY', value: '4' },  // Chromista
-        { type: 'in', key: 'TAXON_KEY', values: ['3241496','3153'] } // Chlorophyta, Rhodophyta
-      ]});
-    } else if (taxonKey === '1') {
-      // Other Animalia — exclude the named groups
-      predicates.push({ type: 'and', predicates: [
-        { type: 'equals', key: 'KINGDOM_KEY', value: '1' },
-        { type: 'not', predicate: { type: 'in', key: 'TAXON_KEY', values: ['44','216','367','229','203','52','50','43','42'] }}
-      ]});
-    } else if (taxonKey) {
-      predicates.push({ type: 'equals', key: 'TAXON_KEY', value: taxonKey });
-    }
+    const taxonPred = buildTaxonPredicates(taxonKeys);
+    if (taxonPred) predicates.push(taxonPred);
 
     const body = {
       creator: GBIF_USER,
