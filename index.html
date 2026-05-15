@@ -246,9 +246,47 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
 .changelog-version li { font-size:12px; color:var(--text2); line-height:1.7; }
 .changelog-empty { font-size:12px; color:var(--text3); font-style:italic; padding:0.5rem 0; }
 @media (max-width:700px) { .changelog-panel { width:100%; border-radius:10px 10px 0 0; } }
+
+/* Mobile warning banner */
+.mobile-banner {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: var(--green-dark);
+  z-index: 99999;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+}
+.mobile-banner-icon { font-size: 48px; margin-bottom: 1rem; }
+.mobile-banner h2 { color: white; font-size: 20px; margin-bottom: 0.75rem; }
+.mobile-banner p { color: rgba(255,255,255,0.75); font-size: 14px; line-height: 1.7; margin-bottom: 1.5rem; max-width: 300px; }
+.mobile-banner-btn {
+  background: white; color: var(--green-dark); border: none;
+  border-radius: var(--radius); padding: 10px 24px;
+  font-size: 14px; font-weight: 600; font-family: var(--font-sans);
+  cursor: pointer; margin-bottom: 0.75rem; width: 100%; max-width: 280px;
+}
+.mobile-banner-btn:hover { opacity: 0.9; }
+.mobile-banner-skip {
+  color: rgba(255,255,255,0.45); font-size: 12px; cursor: pointer;
+  background: none; border: none; font-family: var(--font-sans);
+  text-decoration: underline;
+}
 </style>
 </head>
 <body>
+<!-- Mobile warning -->
+<div class="mobile-banner" id="mobileBanner">
+  <div class="mobile-banner-icon">🗺️</div>
+  <h2>Best on a larger screen</h2>
+  <p>GBIF Record Finder uses a polygon drawing tool and interactive map that need a tablet or desktop to work properly.</p>
+  <button class="mobile-banner-btn" onclick="document.getElementById('mobileBanner').style.display='none'">Continue anyway</button>
+  <button class="mobile-banner-skip" onclick="document.getElementById('mobileBanner').style.display='none'">Dismiss</button>
+</div>
+
 
 <header>
   <div class="header-brand">
@@ -1528,6 +1566,13 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
   btn.addEventListener('click', openChangelog);
   close.addEventListener('click', closeChangelog);
   overlay.addEventListener('click', closeChangelog);
+})();
+
+// Show mobile warning on small screens only (phones, not tablets)
+(function() {
+  if (window.innerWidth < 768) {
+    document.getElementById('mobileBanner').style.display = 'flex';
+  }
 })();
 </script>
 
