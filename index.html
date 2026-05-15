@@ -152,7 +152,10 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
 .taxon-group-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text3); padding: 6px 10px 3px; background: var(--surface2); border-top: 0.5px solid var(--border); }
 .taxon-item { display: flex; align-items: center; gap: 7px; padding: 5px 10px; font-size: 12.5px; cursor: pointer; transition: background 0.1s; }
 .taxon-item:hover { background: var(--green-light); }
-.taxon-item input[type=checkbox] { width: 13px; height: 13px; accent-color: var(--green); flex-shrink: 0; }
+.taxon-item input[type=checkbox] { display: none; }
+.taxon-item .taxon-box { width: 14px; height: 14px; border: 1.5px solid var(--border2); border-radius: 3px; background: var(--surface); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; transition: all 0.1s; }
+.taxon-item input[type=checkbox]:checked + .taxon-box { background: var(--green); border-color: var(--green); color: white; }
+.taxon-item input[type=checkbox]:checked + .taxon-box::after { content: '✓'; }
 .taxon-all { border-bottom: 0.5px solid var(--border); font-weight: 500; }
 
 #map-wrap { position: relative; width: 100%; height: calc(100vh - 52px); overflow: hidden; }
@@ -206,31 +209,31 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
           </div>
           <div class="taxon-dropdown-menu" id="taxonMenu" style="display:none">
             <label class="taxon-item taxon-all">
-              <input type="checkbox" id="taxonAll"> <span>All taxa</span>
+              <input type="checkbox" id="taxonAll"><span class="taxon-box"></span> <span>All taxa</span>
             </label>
             <div class="taxon-group-label">Vertebrates</div>
-            <label class="taxon-item"><input type="checkbox" value="212" class="taxon-cb"> Aves (birds)</label>
-            <label class="taxon-item"><input type="checkbox" value="133" class="taxon-cb"> Mammalia</label>
-            <label class="taxon-item"><input type="checkbox" value="358" class="taxon-cb"> Reptilia</label>
-            <label class="taxon-item"><input type="checkbox" value="131" class="taxon-cb"> Amphibia</label>
-            <label class="taxon-item"><input type="checkbox" value="fish" class="taxon-cb"> Fish</label>
+            <label class="taxon-item"><input type="checkbox" value="212" class="taxon-cb"><span class="taxon-box"></span> Aves (birds)</label>
+            <label class="taxon-item"><input type="checkbox" value="133" class="taxon-cb"><span class="taxon-box"></span> Mammalia</label>
+            <label class="taxon-item"><input type="checkbox" value="358" class="taxon-cb"><span class="taxon-box"></span> Reptilia</label>
+            <label class="taxon-item"><input type="checkbox" value="131" class="taxon-cb"><span class="taxon-box"></span> Amphibia</label>
+            <label class="taxon-item"><input type="checkbox" value="fish" class="taxon-cb"><span class="taxon-box"></span> Fish</label>
             <div class="taxon-group-label">Invertebrates</div>
-            <label class="taxon-item"><input type="checkbox" value="216" class="taxon-cb"> Insecta</label>
-            <label class="taxon-item"><input type="checkbox" value="367" class="taxon-cb"> Arachnida</label>
-            <label class="taxon-item"><input type="checkbox" value="crustacea" class="taxon-cb"> Crustacea</label>
-            <label class="taxon-item"><input type="checkbox" value="52" class="taxon-cb"> Mollusca</label>
-            <label class="taxon-item"><input type="checkbox" value="50" class="taxon-cb"> Echinodermata</label>
-            <label class="taxon-item"><input type="checkbox" value="43" class="taxon-cb"> Cnidaria</label>
-            <label class="taxon-item"><input type="checkbox" value="42" class="taxon-cb"> Annelida</label>
-            <label class="taxon-item"><input type="checkbox" value="1" class="taxon-cb"> Other Animalia</label>
+            <label class="taxon-item"><input type="checkbox" value="216" class="taxon-cb"><span class="taxon-box"></span> Insecta</label>
+            <label class="taxon-item"><input type="checkbox" value="367" class="taxon-cb"><span class="taxon-box"></span> Arachnida</label>
+            <label class="taxon-item"><input type="checkbox" value="crustacea" class="taxon-cb"><span class="taxon-box"></span> Crustacea</label>
+            <label class="taxon-item"><input type="checkbox" value="52" class="taxon-cb"><span class="taxon-box"></span> Mollusca</label>
+            <label class="taxon-item"><input type="checkbox" value="50" class="taxon-cb"><span class="taxon-box"></span> Echinodermata</label>
+            <label class="taxon-item"><input type="checkbox" value="43" class="taxon-cb"><span class="taxon-box"></span> Cnidaria</label>
+            <label class="taxon-item"><input type="checkbox" value="42" class="taxon-cb"><span class="taxon-box"></span> Annelida</label>
+            <label class="taxon-item"><input type="checkbox" value="1" class="taxon-cb"><span class="taxon-box"></span> Other Animalia</label>
             <div class="taxon-group-label">Plants</div>
-            <label class="taxon-item"><input type="checkbox" value="angiosperms" class="taxon-cb"> Angiosperms</label>
-            <label class="taxon-item"><input type="checkbox" value="194" class="taxon-cb"> Gymnosperms</label>
-            <label class="taxon-item"><input type="checkbox" value="113551061" class="taxon-cb"> Ferns &amp; allies</label>
-            <label class="taxon-item"><input type="checkbox" value="311" class="taxon-cb"> Bryophytes</label>
+            <label class="taxon-item"><input type="checkbox" value="angiosperms" class="taxon-cb"><span class="taxon-box"></span> Angiosperms</label>
+            <label class="taxon-item"><input type="checkbox" value="194" class="taxon-cb"><span class="taxon-box"></span> Gymnosperms</label>
+            <label class="taxon-item"><input type="checkbox" value="113551061" class="taxon-cb"><span class="taxon-box"></span> Ferns &amp; allies</label>
+            <label class="taxon-item"><input type="checkbox" value="311" class="taxon-cb"><span class="taxon-box"></span> Bryophytes</label>
             <div class="taxon-group-label">Other</div>
-            <label class="taxon-item"><input type="checkbox" value="algae" class="taxon-cb"> Algae</label>
-            <label class="taxon-item"><input type="checkbox" value="4" class="taxon-cb"> Fungi</label>
+            <label class="taxon-item"><input type="checkbox" value="algae" class="taxon-cb"><span class="taxon-box"></span> Algae</label>
+            <label class="taxon-item"><input type="checkbox" value="4" class="taxon-cb"><span class="taxon-box"></span> Fungi</label>
           </div>
         </div>
       </div>
