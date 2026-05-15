@@ -149,14 +149,12 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
 .taxon-dropdown-trigger:hover { border-color: var(--green); }
 .taxon-arrow { font-size: 10px; color: var(--text3); }
 .taxon-dropdown-menu { position: absolute; top: 100%; left: 0; right: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); z-index: 1000; max-height: 280px; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-top: 2px; }
-.taxon-group-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text3); padding: 6px 10px 3px; background: var(--surface2); border-top: 0.5px solid var(--border); }
-.taxon-item { display: flex; align-items: center; gap: 7px; padding: 5px 10px; font-size: 12.5px; cursor: pointer; transition: background 0.1s; }
-.taxon-item:hover { background: var(--green-light); }
+.taxon-group-label { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text3); padding: 4px 10px 2px; background: var(--surface2); border-top: 0.5px solid var(--border); }
+.taxon-item { display: flex; align-items: center; gap: 7px; padding: 3px 10px; font-size: 11.5px; cursor: pointer; color: var(--text3); transition: color 0.1s; user-select: none; }
+.taxon-item:hover { color: var(--text); }
+.taxon-item.selected { color: var(--text); font-weight: 500; }
 .taxon-item input[type=checkbox] { display: none; }
-.taxon-item .taxon-box { width: 14px; height: 14px; border: 1.5px solid var(--border2); border-radius: 3px; background: var(--surface); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; transition: all 0.1s; }
-.taxon-item input[type=checkbox]:checked + .taxon-box { background: var(--green); border-color: var(--green); color: white; }
-.taxon-item input[type=checkbox]:checked + .taxon-box::after { content: '✓'; }
-.taxon-all { border-bottom: 0.5px solid var(--border); font-weight: 500; }
+.taxon-all { border-bottom: 0.5px solid var(--border); font-weight: 500; padding: 5px 10px; }
 
 #map-wrap { position: relative; width: 100%; height: calc(100vh - 52px); overflow: hidden; }
 #map { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
@@ -208,32 +206,32 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
             <span class="taxon-arrow">&#9660;</span>
           </div>
           <div class="taxon-dropdown-menu" id="taxonMenu" style="display:none">
-            <label class="taxon-item taxon-all">
-              <input type="checkbox" id="taxonAll"><span class="taxon-box"></span> <span>All taxa</span>
+            <label class="taxon-item taxon-all" id="taxonAllLabel">
+              <input type="checkbox" id="taxonAll"> All taxa
             </label>
             <div class="taxon-group-label">Vertebrates</div>
-            <label class="taxon-item"><input type="checkbox" value="212" class="taxon-cb"><span class="taxon-box"></span> Aves (birds)</label>
-            <label class="taxon-item"><input type="checkbox" value="133" class="taxon-cb"><span class="taxon-box"></span> Mammalia</label>
-            <label class="taxon-item"><input type="checkbox" value="358" class="taxon-cb"><span class="taxon-box"></span> Reptilia</label>
-            <label class="taxon-item"><input type="checkbox" value="131" class="taxon-cb"><span class="taxon-box"></span> Amphibia</label>
-            <label class="taxon-item"><input type="checkbox" value="fish" class="taxon-cb"><span class="taxon-box"></span> Fish</label>
+            <label class="taxon-item"><input type="checkbox" value="212" class="taxon-cb"> Aves (birds)</label>
+            <label class="taxon-item"><input type="checkbox" value="133" class="taxon-cb"> Mammalia</label>
+            <label class="taxon-item"><input type="checkbox" value="358" class="taxon-cb"> Reptilia</label>
+            <label class="taxon-item"><input type="checkbox" value="131" class="taxon-cb"> Amphibia</label>
+            <label class="taxon-item"><input type="checkbox" value="fish" class="taxon-cb"> Fish</label>
             <div class="taxon-group-label">Invertebrates</div>
-            <label class="taxon-item"><input type="checkbox" value="216" class="taxon-cb"><span class="taxon-box"></span> Insecta</label>
-            <label class="taxon-item"><input type="checkbox" value="367" class="taxon-cb"><span class="taxon-box"></span> Arachnida</label>
-            <label class="taxon-item"><input type="checkbox" value="crustacea" class="taxon-cb"><span class="taxon-box"></span> Crustacea</label>
-            <label class="taxon-item"><input type="checkbox" value="52" class="taxon-cb"><span class="taxon-box"></span> Mollusca</label>
-            <label class="taxon-item"><input type="checkbox" value="50" class="taxon-cb"><span class="taxon-box"></span> Echinodermata</label>
-            <label class="taxon-item"><input type="checkbox" value="43" class="taxon-cb"><span class="taxon-box"></span> Cnidaria</label>
-            <label class="taxon-item"><input type="checkbox" value="42" class="taxon-cb"><span class="taxon-box"></span> Annelida</label>
-            <label class="taxon-item"><input type="checkbox" value="1" class="taxon-cb"><span class="taxon-box"></span> Other Animalia</label>
+            <label class="taxon-item"><input type="checkbox" value="216" class="taxon-cb"> Insecta</label>
+            <label class="taxon-item"><input type="checkbox" value="367" class="taxon-cb"> Arachnida</label>
+            <label class="taxon-item"><input type="checkbox" value="crustacea" class="taxon-cb"> Crustacea</label>
+            <label class="taxon-item"><input type="checkbox" value="52" class="taxon-cb"> Mollusca</label>
+            <label class="taxon-item"><input type="checkbox" value="50" class="taxon-cb"> Echinodermata</label>
+            <label class="taxon-item"><input type="checkbox" value="43" class="taxon-cb"> Cnidaria</label>
+            <label class="taxon-item"><input type="checkbox" value="42" class="taxon-cb"> Annelida</label>
+            <label class="taxon-item"><input type="checkbox" value="1" class="taxon-cb"> Other Animalia</label>
             <div class="taxon-group-label">Plants</div>
-            <label class="taxon-item"><input type="checkbox" value="angiosperms" class="taxon-cb"><span class="taxon-box"></span> Angiosperms</label>
-            <label class="taxon-item"><input type="checkbox" value="194" class="taxon-cb"><span class="taxon-box"></span> Gymnosperms</label>
-            <label class="taxon-item"><input type="checkbox" value="113551061" class="taxon-cb"><span class="taxon-box"></span> Ferns &amp; allies</label>
-            <label class="taxon-item"><input type="checkbox" value="311" class="taxon-cb"><span class="taxon-box"></span> Bryophytes</label>
+            <label class="taxon-item"><input type="checkbox" value="angiosperms" class="taxon-cb"> Angiosperms</label>
+            <label class="taxon-item"><input type="checkbox" value="194" class="taxon-cb"> Gymnosperms</label>
+            <label class="taxon-item"><input type="checkbox" value="113551061" class="taxon-cb"> Ferns &amp; allies</label>
+            <label class="taxon-item"><input type="checkbox" value="311" class="taxon-cb"> Bryophytes</label>
             <div class="taxon-group-label">Other</div>
-            <label class="taxon-item"><input type="checkbox" value="algae" class="taxon-cb"><span class="taxon-box"></span> Algae</label>
-            <label class="taxon-item"><input type="checkbox" value="4" class="taxon-cb"><span class="taxon-box"></span> Fungi</label>
+            <label class="taxon-item"><input type="checkbox" value="algae" class="taxon-cb"> Algae</label>
+            <label class="taxon-item"><input type="checkbox" value="4" class="taxon-cb"> Fungi</label>
           </div>
         </div>
       </div>
@@ -838,12 +836,19 @@ const taxonAll     = document.getElementById('taxonAll');
 const taxonCbs     = () => [...document.querySelectorAll('.taxon-cb')];
 
 function updateTaxonLabel() {
-  const checked = taxonCbs().filter(cb => cb.checked);
-  const label = taxonAll.checked ? 'All taxa' :
-    checked.length === 0 ? 'No groups selected' :
-    checked.length <= 3 ? checked.map(cb => cb.closest('label').textContent.trim()).join(', ') :
-    checked.length + ' groups selected';
+  const allSel = document.getElementById('taxonAllLabel').classList.contains('selected');
+  const selected = taxonCbs().filter(cb => cb.closest('label').classList.contains('selected'));
+  const label = (allSel || selected.length === 0) ? 'All taxa' :
+    selected.length <= 3 ? selected.map(cb => cb.closest('label').textContent.trim()).join(', ') :
+    selected.length + ' groups selected';
   document.getElementById('taxonTriggerLabel').textContent = label;
+}
+
+function getSelectedTaxonKeys() {
+  const allSel = document.getElementById('taxonAllLabel').classList.contains('selected');
+  if (allSel) return [];
+  const selected = taxonCbs().filter(cb => cb.closest('label').classList.contains('selected'));
+  return selected.map(cb => cb.value); // empty = all taxa
 }
 
 taxonTrigger.addEventListener('click', () => {
@@ -855,20 +860,27 @@ document.addEventListener('click', e => {
   if (!e.target.closest('#taxonDropdown')) taxonMenu.style.display = 'none';
 });
 
-taxonAll.addEventListener('change', () => {
-  taxonCbs().forEach(cb => { cb.checked = false; cb.disabled = taxonAll.checked; });
+const taxonAllLabel = document.getElementById('taxonAllLabel');
+taxonAllLabel.addEventListener('click', e => {
+  e.preventDefault();
+  const isSelected = taxonAllLabel.classList.toggle('selected');
+  if (isSelected) {
+    taxonCbs().forEach(cb => { cb.closest('label').classList.remove('selected'); });
+  }
   updateTaxonLabel();
 });
 
-taxonCbs().forEach(cb => cb.addEventListener('change', () => {
-  if (cb.checked) { taxonAll.checked = false; taxonAll.disabled = false; }
-  updateTaxonLabel();
-}));
-
-function getSelectedTaxonKeys() {
-  if (taxonAll.checked) return []; // empty = all taxa
-  return taxonCbs().filter(cb => cb.checked).map(cb => cb.value);
-}
+taxonCbs().forEach(cb => {
+  cb.closest('label').addEventListener('click', e => {
+    e.preventDefault();
+    const label = cb.closest('label');
+    label.classList.toggle('selected');
+    if (label.classList.contains('selected')) {
+      taxonAllLabel.classList.remove('selected');
+    }
+    updateTaxonLabel();
+  });
+});
 
 function buildTaxonPredicates(keys) {
   if (keys.length === 0) return null; // no filter
