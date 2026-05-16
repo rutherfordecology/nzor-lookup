@@ -627,7 +627,12 @@ document.getElementById('clClearSel').addEventListener('click', () => clearSpeci
 function setStatus(msg, type) { statusBar.textContent = msg; statusBar.className = 'status-bar ' + type; statusBar.style.display = 'block'; }
 function setProgress(pct, label) { progressWrap.style.display = 'block'; progressFill.style.width = pct + '%'; progressLabel.textContent = label; }
 
-const FISH_CLASSES     = new Set(['Actinopterygii','Chondrichthyes','Elasmobranchii','Holocephali','Petromyzontida','Myxini','Sarcopterygii','Cephalaspidomorphi']);
+const FISH_ORDERS = new Set([
+  'myxiniformes','petromyzontiformes',
+  'heterodontiformes','orectolobiformes','carcharhiniformes','lamniformes','hexanchiformes','squaliformes','squatiniformes','pristiophoriformes','rajiformes','rhinopristiformes','torpediniformes','myliobatiformes','chimaeriformes',
+  'polypteriformes','acipenseriformes','lepisosteiformes','amiiformes','osteoglossiformes','hiodontiformes','elopiformes','albuliformes','notacanthiformes','anguilliformes','saccopharyngiformes','clupeiformes','gonorynchiformes','cypriniformes','characiformes','gymnotiformes','siluriformes','salmoniformes','esociformes','osmeriformes','ateleopodiformes','stomiiformes','aulopiformes','myctophiformes','lampriformes','polymixiiformes','percopsiformes','batrachoidiformes','lophiiformes','gadiformes','ophidiiformes','mugiliformes','atheriniformes','beloniformes','cetomimiformes','cyprinodontiformes','stephanoberyciformes','beryciformes','zeiformes','gobiesociformes','gasterosteiformes','syngnathiformes','synbranchiformes','scorpaeniformes','perciformes','pleuronectiformes','tetraodontiformes',
+  'coelacanthiformes','ceratodontiformes','lepidosireniformes',
+]);
 const TETRAPOD_CLASSES = new Set(['Aves','Mammalia','Reptilia','Amphibia']);
 const CRUST_CLASSES    = new Set(['Malacostraca','Maxillopoda','Branchiopoda','Ostracoda','Cirripedia','Copepoda']);
 const ANGIO_CLASSES    = new Set(['Magnoliopsida','Liliopsida','Equisetopsida']);
@@ -646,8 +651,7 @@ function getTaxonGroup(r) {
   if (cls === 'Mammalia') return 'Mammalia';
   if (cls === 'Reptilia') return 'Reptilia';
   if (cls === 'Amphibia') return 'Amphibia';
-  if (FISH_CLASSES.has(cls)) return 'Fish';
-  if (phylum === 'Chordata' && !cls && !TETRAPOD_CLASSES.has(cls)) return 'Fish';
+  if (r.order && FISH_ORDERS.has(r.order.toLowerCase())) return 'Fish';
 
   // Arthropod subgroups
   if (cls === 'Insecta') return 'Insecta';
