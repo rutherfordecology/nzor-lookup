@@ -51,7 +51,7 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
 .poly-item { display: flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: var(--radius); background: var(--green-light); border: 0.5px solid var(--green-mid); font-size: 12px; color: var(--green-dark); }
 .poly-item-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .poly-item-count { font-size: 11px; color: var(--green); flex-shrink: 0; }
-.poly-remove { cursor: pointer; color: var(--green); font-size: 14px; flex-shrink: 0; line-height: 1; padding: 0 2px; }
+.poly-remove { cursor: pointer; color: var(--green); font-size: 14px; flex-shrink: 0; line-height: 1; padding: 4px 8px; min-width: 30px; min-height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 4px; }
 .poly-remove:hover { color: var(--red); }
 .poly-empty { font-size: 12px; color: var(--text3); padding: 6px 0; }
 
@@ -181,6 +181,25 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
   .checklist-panel.open { transform: translateY(0); }
   .header-right { display: none; }
   .metrics { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 400px) {
+  .sidebar-section { padding: 0.75rem 0.9rem; }
+  .field-row { flex-direction: column; gap: 6px; }
+  .export-row { grid-template-columns: 1fr; }
+  .metrics { grid-template-columns: repeat(2, 1fr); }
+}
+/* Cancel-drawing button (shown over map while drawing) */
+#cancelDrawBtn {
+  display: none;
+  position: absolute;
+  bottom: 16px; left: 50%; transform: translateX(-50%);
+  z-index: 1200;
+  background: var(--green-dark); color: white;
+  border: none; border-radius: 20px;
+  padding: 10px 22px; font-size: 14px; font-weight: 500;
+  font-family: var(--font-sans); cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  white-space: nowrap;
 }
 
 .taxon-dropdown { position: relative; }
@@ -415,7 +434,7 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
 
     <div class="sidebar-footer">
       <p class="note">
-        Queries the <a href="https://techdocs.gbif.org/en/data-use/api-downloads" target="_blank">GBIF occurrence download API</a> — uses a dedicated GBIF account to retrieve complete datasets. Results are fully comprehensive with no record limits. For more information visit the <a href="https://www.gbif.org" target="_blank">GBIF portal</a>.
+        Queries the <a href="https://techdocs.gbif.org/en/openapi/v1/occurrence" target="_blank">GBIF occurrence search API</a> — no login required. For more information visit the <a href="https://www.gbif.org" target="_blank">GBIF portal</a>.
       </p>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-top:0.6rem;">
         <span class="note">© Rutherford Ecology</span>
@@ -426,6 +445,7 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
 
   <div id="map-wrap">
     <div id="map"></div>
+    <button id="cancelDrawBtn">&#x2715; Cancel drawing</button>
 
     <div class="checklist-panel" id="checklistPanel">
       <div class="cl-header">
@@ -595,6 +615,20 @@ const drawControl = new L.Control.Draw({
     polyline: false, rectangle: false, circle: false, circlemarker: false, marker: false
   }
 }).addTo(map);
+
+const cancelDrawBtn = document.getElementById('cancelDrawBtn');
+let activeDrawHandler = null;
+map.on(L.Draw.Event.DRAWSTART, e => {
+  activeDrawHandler = e.handler;
+  cancelDrawBtn.style.display = 'block';
+});
+map.on(L.Draw.Event.DRAWSTOP, () => {
+  cancelDrawBtn.style.display = 'none';
+  activeDrawHandler = null;
+});
+cancelDrawBtn.addEventListener('click', () => {
+  if (activeDrawHandler) activeDrawHandler.disable();
+});
 
 map.on(L.Draw.Event.CREATED, e => {
   const raw = e.layer.getLatLngs();
