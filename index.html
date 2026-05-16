@@ -315,7 +315,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
 <header>
   <div class="header-brand">
     <h1><a href="https://sites.google.com/view/rutherford-ecology/?read_current=1" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a></h1>
-    <span style="font-size:15px;font-weight:600;color:rgba(255,255,255,0.85);">GBIF Record Finder</span> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.4);letter-spacing:0.04em;">v1.07</span><img src="logo.png" alt="GBIF Record Finder logo" style="height:46px;width:auto;margin-left:4px;filter:brightness(0) invert(1);opacity:0.9;">
+    <span style="font-size:15px;font-weight:600;color:rgba(255,255,255,0.85);">GBIF Record Finder</span> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.4);letter-spacing:0.04em;">v1.08</span><img src="logo.png" alt="GBIF Record Finder logo" style="height:46px;width:auto;margin-left:4px;filter:brightness(0) invert(1);opacity:0.9;">
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -1222,9 +1222,11 @@ async function loadPopupPhoto(photoId, taxonKey, sciName) {
   const photo = await fetchSpeciesPhoto(taxonKey, sciName);
   if (!slot.isConnected) return;
   if (photo) {
+    const imgH = window.innerWidth < 768 ? '130px' : '260px';
     slot.innerHTML =
       '<img src="' + photo.url + '" alt="' + (sciName || '') + '" ' +
-      'style="width:100%;height:' + (window.innerWidth < 768 ? '130px' : '260px') + ';object-fit:cover;border-radius:4px;display:block;" ' +
+      'style="width:100%;height:' + imgH + ';object-fit:cover;border-radius:4px;display:block;" ' +
+      'onload="if(this.naturalHeight>this.naturalWidth){this.style.width=\'auto\';this.style.maxWidth=\'100%\';this.style.objectFit=\'contain\';this.style.margin=\'0 auto\';}" ' +
       'onerror="this.parentElement.innerHTML=\'\'"> ' +
       '<div style="font-size:9px;color:#9b9890;margin-top:2px;line-height:1.3;">' +
       licenceBadge(photo.licence) + (photo.photographer || '') + '</div>';
