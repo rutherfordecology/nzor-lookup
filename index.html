@@ -552,6 +552,18 @@ const TAXON_COLOURS = {
 };
 const CSV_FIELDS = ['gbifID','eventDate','year','month','day','scientificName','vernacularName','kingdom','phylum','class','order','family','genus','species','decimalLatitude','decimalLongitude','coordinateUncertaintyInMeters','hasGeospatialIssues','basisOfRecord','occurrenceID','taxonKey','datasetName','country','stateProvince','locality','recordedBy'];
 
+// Maps taxon checkbox values to the getTaxonGroup() strings they correspond to.
+// Used to post-filter downloaded records so non-target taxa don't slip through.
+const CB_TO_GROUP = {
+  '212': 'Aves', '133': 'Mammalia', '358': 'Reptilia', '131': 'Amphibia',
+  'fish': 'Fish',
+  '216': 'Insecta', '367': 'Arachnida', 'crustacea': 'Crustacea',
+  '52': 'Mollusca', '50': 'Echinodermata', '43': 'Cnidaria', '42': 'Annelida',
+  '1': 'Other',
+  'angiosperms': 'Angiosperms', '194': 'Gymnosperms', '113551061': 'Ferns', '311': 'Bryophytes',
+  'algae': 'Algae', '4': 'Fungi',
+};
+
 // Map
 const map = L.map('map').setView([-41.5, 172.5], 5);
 const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -1601,15 +1613,25 @@ runBtn.addEventListener('click', async () => {
   await lookupCommonNames(allFetched);
   setProgress(100, 'Done');
 
-  allRecords = allFetched;
-  const species = new Set(allFetched.map(r => r.species || r.scientificName).filter(Boolean));
-  document.getElementById('mRecords').textContent = allFetched.length.toLocaleString();
+  // Post-download client-side filter: remove records that slipped through the GBIF
+  // predicate but don't belong to the requested taxon groups (e.g. non-fish Chordata
+  // when only Fish was selected). When no specific groups are selected (all taxa), keep everything.
+  const requestedGroups = taxonKeys.length > 0
+    ? new Set(taxonKeys.map(k => CB_TO_GROUP[k]).filter(Boolean))
+    : null;
+  const displayRecords = requestedGroups
+    ? allFetched.filter(r => requestedGroups.has(getTaxonGroup(r)))
+    : allFetched;
+
+  allRecords = displayRecords;
+  const species = new Set(displayRecords.map(r => r.species || r.scientificName).filter(Boolean));
+  document.getElementById('mRecords').textContent = displayRecords.length.toLocaleString();
   document.getElementById('mSpecies').textContent = species.size.toLocaleString();
   metricsGrid.style.display = 'grid';
 
-  buildFilterChips(allFetched);
-  buildChecklist(allFetched);
-  renderPoints(allFetched);
+  buildFilterChips(displayRecords);
+  buildChecklist(displayRecords);
+  renderPoints(displayRecords);
   setTimeout(() => {
     map.invalidateSize();
     try {
@@ -1617,7 +1639,7 @@ runBtn.addEventListener('click', async () => {
       if (b && b.isValid()) map.fitBounds(b, { padding: [40, 40], maxZoom: 14 });
     } catch(e) {}
   }, 100);
-  csvData = buildCSV(allFetched);
+  csvData = buildCSV(displayRecords);
   outputSection.style.display = 'block';
 
   // Show quality flags and richness summary
