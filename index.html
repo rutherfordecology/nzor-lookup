@@ -527,6 +527,7 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+<script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
 <script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script>
 <script>
 const COMPLEXITY_THRESHOLD = 500;
@@ -598,8 +599,26 @@ const drawControl = new L.Control.Draw({
 map.on(L.Draw.Event.CREATED, e => {
   const raw = e.layer.getLatLngs();
   const latlngs = Array.isArray(raw[0]) ? raw[0] : (raw[0].lat !== undefined ? raw : raw[0]);
-  const label = 'Drawn polygon ' + (nextPolyId + 1);
-  setTimeout(() => addPolygon(latlngs, label), 0);
+
+  // Check for self-intersections and auto-split if found
+  const coords = latlngs.map(ll => [ll.lng, ll.lat]);
+  if (coords[0][0] !== coords[coords.length-1][0] || coords[0][1] !== coords[coords.length-1][1]) coords.push([...coords[0]]);
+  try {
+    const turfPoly = turf.polygon([coords]);
+    const kinks = turf.kinks(turfPoly);
+    if (kinks.features.length > 0) {
+      const fixed = turf.unkinkPolygon(turfPoly);
+      const n = fixed.features.length;
+      fixed.features.forEach(feat => {
+        const ll = feat.geometry.coordinates[0].slice(0, -1).map(c => ({ lat: c[1], lng: c[0] }));
+        addPolygon(ll, 'Drawn polygon ' + (nextPolyId + 1));
+      });
+      setStatus('Self-intersecting polygon automatically split into ' + n + ' valid polygons.', 'info');
+      return;
+    }
+  } catch(err) { /* fall through to normal add if turf fails */ }
+
+  addPolygon(latlngs, 'Drawn polygon ' + (nextPolyId + 1));
 });
 
 // State
