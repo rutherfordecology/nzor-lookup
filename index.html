@@ -177,9 +177,11 @@ html, body { max-width: 100vw; overflow-x: hidden; }
 /* Mobile responsiveness */
 @media (max-width: 700px) {
   body { overflow-y: auto; }
+  header { position: sticky; top: 0; z-index: 1100; }
   .layout { grid-template-columns: 1fr; height: auto; overflow: visible; max-width: 100vw; }
-  .sidebar { border-right: none; border-bottom: 1px solid var(--border); overflow-y: visible; max-width: 100vw; }
-  #map-wrap { height: 75vw; min-height: 300px; position: relative; width: 100%; max-width: 100vw; }
+  /* Map first on mobile so sidebar controls are below and reachable by scrolling down */
+  #map-wrap { order: 1; height: 58vh; min-height: 280px; position: relative; width: 100%; max-width: 100vw; }
+  .sidebar { order: 2; border-right: none; border-top: 1px solid var(--border); overflow-y: visible; max-width: 100vw; }
   #map { position: absolute; inset: 0; }
   .checklist-panel { width: 100%; height: 380px; top: auto; bottom: 0; transform: translateY(100%); }
   .checklist-panel.open { transform: translateY(0); }
@@ -225,8 +227,11 @@ html, body { max-width: 100vw; overflow-x: hidden; }
 .taxon-item input[type=checkbox] { display: none; }
 .taxon-all { border-bottom: 0.5px solid var(--border); font-weight: 500; padding: 5px 10px; }
 
-#map-wrap { position: relative; width: 100%; height: calc(100vh - 52px); overflow: hidden; }
+#map-wrap { position: relative; width: 100%; overflow: hidden; }
 #map { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
+@media (min-width: 701px) {
+  #map-wrap { height: calc(100vh - 52px); }
+}
 
 /* Changelog panel — slides up from bottom of sidebar */
 .changelog-overlay { display:none; position:fixed; inset:0; z-index:9998; }
@@ -315,7 +320,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
 <header>
   <div class="header-brand">
     <h1><a href="https://sites.google.com/view/rutherford-ecology/?read_current=1" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a></h1>
-    <span style="font-size:15px;font-weight:600;color:rgba(255,255,255,0.85);">GBIF Record Finder</span> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.4);letter-spacing:0.04em;">v1.10</span><img src="logo.png" alt="GBIF Record Finder logo" style="height:46px;width:auto;margin-left:4px;filter:brightness(0) invert(1);opacity:0.9;">
+    <span style="font-size:15px;font-weight:600;color:rgba(255,255,255,0.85);">GBIF Record Finder</span> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.4);letter-spacing:0.04em;">v1.11</span><img src="logo.png" alt="GBIF Record Finder logo" style="height:46px;width:auto;margin-left:4px;filter:brightness(0) invert(1);opacity:0.9;">
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -640,7 +645,11 @@ const cancelDrawBtn = document.getElementById('cancelDrawBtn');
 let activeDrawHandler = null;
 
 map.on(L.Draw.Event.DRAWSTART, e => {
-  activeDrawHandler = e.handler;
+  // e.handler is the Leaflet.draw polygon handler; fall back to direct lookup if missing
+  activeDrawHandler = e.handler ||
+    (drawControl._toolbars && drawControl._toolbars.draw &&
+     drawControl._toolbars.draw._modes && drawControl._toolbars.draw._modes.polygon &&
+     drawControl._toolbars.draw._modes.polygon.handler) || null;
   drawActionBar.style.display = 'flex';
 });
 map.on(L.Draw.Event.DRAWSTOP, () => {
@@ -648,16 +657,21 @@ map.on(L.Draw.Event.DRAWSTOP, () => {
   activeDrawHandler = null;
 });
 
+let _lastUndo = 0, _lastCancel = 0;
 function onUndoPoint(e) {
   e.preventDefault(); e.stopPropagation();
-  if (activeDrawHandler) activeDrawHandler.deleteLastVertex();
+  const now = Date.now(); if (now - _lastUndo < 400) return; _lastUndo = now;
+  if (activeDrawHandler && activeDrawHandler.deleteLastVertex) activeDrawHandler.deleteLastVertex();
 }
 function onCancelDraw(e) {
   e.preventDefault(); e.stopPropagation();
-  if (activeDrawHandler) activeDrawHandler.disable();
+  const now = Date.now(); if (now - _lastCancel < 400) return; _lastCancel = now;
+  if (activeDrawHandler && activeDrawHandler.disable) activeDrawHandler.disable();
 }
+undoPointBtn.addEventListener('pointerdown', onUndoPoint);
 undoPointBtn.addEventListener('touchstart', onUndoPoint, { passive: false });
 undoPointBtn.addEventListener('click', onUndoPoint);
+cancelDrawBtn.addEventListener('pointerdown', onCancelDraw);
 cancelDrawBtn.addEventListener('touchstart', onCancelDraw, { passive: false });
 cancelDrawBtn.addEventListener('click', onCancelDraw);
 
@@ -1997,17 +2011,13 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
   overlay.addEventListener('click', closeChangelog);
 })();
 
-// Show mobile warning and mobile CSV note on small screens only;
-// also move sidebar footer below the map so it sits at the page bottom
+// Show mobile warning and mobile CSV note on small screens only
 (function() {
   if (window.innerWidth < 768) {
     document.getElementById('mobileBanner').style.display = 'flex';
     const note = document.querySelector('.mobile-csv-note');
     if (note) note.style.display = 'block';
-    // Relocate footer to after map-wrap
-    const footer = document.querySelector('.sidebar-footer');
-    const mapWrap = document.getElementById('map-wrap');
-    if (footer && mapWrap) mapWrap.insertAdjacentElement('afterend', footer);
+    // Footer stays in sidebar — sidebar is already below map via CSS order
   }
 })();
 </script>
