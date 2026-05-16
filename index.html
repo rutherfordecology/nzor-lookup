@@ -334,7 +334,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
 <header>
   <div class="header-brand">
     <h1><a href="https://sites.google.com/view/rutherford-ecology/?read_current=1" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a></h1>
-    <span style="font-size:15px;font-weight:600;color:rgba(255,255,255,0.85);">GBIF Record Finder</span> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.4);letter-spacing:0.04em;">v1.31</span><img src="logo.png" alt="GBIF Record Finder logo" style="height:46px;width:auto;margin-left:4px;filter:brightness(0) invert(1);opacity:0.9;">
+    <span style="font-size:15px;font-weight:600;color:rgba(255,255,255,0.85);">GBIF Record Finder</span> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.4);letter-spacing:0.04em;">v1.32</span><img src="logo.png" alt="GBIF Record Finder logo" style="height:46px;width:auto;margin-left:4px;filter:brightness(0) invert(1);opacity:0.9;">
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -1291,8 +1291,19 @@ function buildRecordPage(rec) {
   const uncertVal = parseFloat(rec.coordinateUncertaintyInMeters);
   const uncert  = uncertVal >= 1500 ? '<div style="font-size:11px;color:#9b9890;">\u26a0 Low precision: \xb1' + Math.round(uncertVal / 100) / 10 + ' km</div>' : '';
   const gbifId  = rec.gbifID;
-  const link    = gbifId ? '<div style="margin-top:4px;"><a href="https://www.gbif.org/occurrence/' + gbifId + '" target="_blank" rel="noopener" style="color:#2a7a58;font-size:12px;">View on GBIF \u2197</a></div>' : '';
   const photoId = 'gbif-photo-' + (gbifId || Math.random().toString(36).slice(2));
+  if (rec.recordPhoto) window._gbifRecordPhotos[photoId] = rec.recordPhoto;
+  const camBtn  = rec.recordPhoto
+    ? ' <button onclick="window._gbifShowRecordPhoto(\'' + photoId + '\',\'' + photoId + '\')" ' +
+      'title="View photo from this record" ' +
+      'style="background:none;border:none;cursor:pointer;font-size:15px;vertical-align:middle;padding:0 0 0 4px;line-height:1;opacity:0.75;" ' +
+      'onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'0.75\'">\ud83d\udcf7</button>'
+    : '';
+  const link    = gbifId
+    ? '<div style="margin-top:4px;display:flex;align-items:center;">' +
+      '<a href="https://www.gbif.org/occurrence/' + gbifId + '" target="_blank" rel="noopener" style="color:#2a7a58;font-size:12px;">View on GBIF \u2197</a>' +
+      camBtn + '</div>'
+    : '';
   return {
     html: '<div id="' + photoId + '" style="margin-bottom:8px;"></div>' +
           primary + cls + date + source + uncert + link,
@@ -1324,6 +1335,23 @@ async function loadPopupPhoto(photoId, taxonKey, sciName) {
 }
 
 
+// Registry for per-record photos so camera buttons can look them up by key
+window._gbifRecordPhotos = {};
+window._gbifShowRecordPhoto = function(slotId, photoKey) {
+  const photo = window._gbifRecordPhotos[photoKey];
+  const slot  = document.getElementById(slotId);
+  if (!slot || !photo) return;
+  const imgH = window.innerWidth < 768 ? '130px' : '260px';
+  slot.dataset.loaded = '1'; // prevent species photo from loading on top
+  slot.innerHTML =
+    '<img src="' + photo.url + '" alt="" ' +
+    'style="width:100%;height:' + imgH + ';object-fit:cover;border-radius:4px;display:block;" ' +
+    'onload="if(this.naturalHeight>this.naturalWidth){this.style.width=\'auto\';this.style.maxWidth=\'100%\';this.style.objectFit=\'contain\';this.style.margin=\'0 auto\';}" ' +
+    'onerror="this.parentElement.innerHTML=\'\'"> ' +
+    '<div style="font-size:9px;color:#9b9890;margin-top:2px;line-height:1.3;">' +
+    licenceBadge(photo.licence) + (photo.photographer || '') + '</div>';
+};
+
 window._gbifPopupState = {};
 
 window._gbifSelectSpecies = function(pid, spIdx) {
@@ -1348,7 +1376,16 @@ window._gbifSelectSpecies = function(pid, spIdx) {
     const link = r.gbifID
       ? ' <a href="https://www.gbif.org/occurrence/' + r.gbifID + '" target="_blank" rel="noopener" style="color:#2a7a58;font-size:11px;">View on GBIF ↗</a>'
       : '';
-    return '<div style="padding:1px 0;">' + date + link + '</div>';
+    let camBtn = '';
+    if (r.recordPhoto) {
+      const photoKey = 'rec-' + (r.gbifID || Math.random().toString(36).slice(2));
+      window._gbifRecordPhotos[photoKey] = r.recordPhoto;
+      camBtn = ' <button onclick="window._gbifShowRecordPhoto(\'' + pid + '-photo\',\'' + photoKey + '\')" ' +
+        'title="View photo from this record" ' +
+        'style="background:none;border:none;cursor:pointer;font-size:13px;vertical-align:middle;padding:0 0 0 3px;line-height:1;opacity:0.75;" ' +
+        'onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'0.75\'">📷</button>';
+    }
+    return '<div style="padding:1px 0;">' + date + link + camBtn + '</div>';
   }).join('');
   const countLabel = '<div style="font-size:11px;color:#9b9890;margin-bottom:2px;">' + sp.records.length + ' record' + (sp.records.length === 1 ? '' : 's') + (sp.records.length > 5 ? ' — scroll to see all' : '') + '</div>';
   const recordRows = countLabel + (sp.records.length > 5
@@ -1870,6 +1907,7 @@ runBtn.addEventListener('click', async () => {
             stateProvince:                 r.stateProvince || null,
             locality:                      r.locality      || null,
             recordedBy:                    Array.isArray(r.recordedBy) ? r.recordedBy.join('; ') : (r.recordedBy || null),
+            recordPhoto: (() => { const img = (r.media || []).find(m => m.type === 'StillImage' && m.identifier); return img ? { url: img.identifier, licence: img.license || '', photographer: img.rightsHolder || img.creator || '' } : null; })(),
             _polyId:    poly.id,
             _polyLabel: poly.label
           });
