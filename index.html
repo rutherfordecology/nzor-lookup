@@ -955,18 +955,19 @@ async function lookupCommonNames(records) {
     nameCounts[r.taxonKey][n] = (nameCounts[r.taxonKey][n] || 0) + 1;
   });
 
-  // 4. Backfill: prefer country-filtered majority vote (reflects local usage), then API name.
-  //    Clear any leftover banding codes that neither source replaced.
+  // 4. Backfill: API name first (reliable language/country metadata), majority vote as fallback.
+  //    Clear any leftover banding codes or non-ASCII names that neither source replaced.
   records.forEach(r => {
     if (!r.taxonKey) return;
+    const apiResults = commonNameCache[r.taxonKey];
+    const apiName = Array.isArray(apiResults) ? pickVernacularName(apiResults, dominantCountry, prefLang) : '';
+    if (apiName) { r.vernacularName = apiName; return; }
+    // Fallback: majority vote among occurrence records for this region
     const votes = nameCounts[r.taxonKey];
     if (votes) {
       const top = Object.entries(votes).sort((a, b) => b[1] - a[1])[0];
       if (top) { r.vernacularName = top[0]; return; }
     }
-    const apiResults = commonNameCache[r.taxonKey];
-    const apiName = Array.isArray(apiResults) ? pickVernacularName(apiResults, dominantCountry, prefLang) : '';
-    if (apiName) { r.vernacularName = apiName; return; }
     // Clear any name that's still a banding code or (for English regions) non-ASCII
     const vn = r.vernacularName;
     if (vn && (isBandingCode(vn) || (asciiOnly && /[^\x00-\x7F]/.test(vn)))) r.vernacularName = null;
