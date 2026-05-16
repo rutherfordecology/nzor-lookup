@@ -439,7 +439,10 @@ html, body { max-width: 100vw; overflow-x: hidden; }
     </div>
 
     <div class="filter-section" id="filterSection">
-      <div class="section-label">Filter by taxon group</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem;">
+        <div class="section-label" style="margin-bottom:0;">Filter by taxon group</div>
+        <button id="selectAllChipsBtn" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--green);font-family:var(--font-sans);padding:2px 4px;border-radius:3px;font-weight:500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Deselect all</button>
+      </div>
       <div class="filter-chips" id="filterChips"></div>
     </div>
 
@@ -1002,6 +1005,18 @@ function pickVernacularName(results, countryCode, prefLang) {
   if (pl !== 'eng') {
     const r3 = pick(v => normLang(v.language) === 'eng' && v.preferred);
     if (r3) return r3.vernacularName;
+  }
+
+  // Fallback tiers: non-preferred entries (caller still applies ASCII + banding-code filters)
+  if (cc) {
+    const r4 = pick(v => (v.country||'').toUpperCase() === cc);
+    if (r4) return r4.vernacularName;
+  }
+  const r5 = pick(v => normLang(v.language) === pl);
+  if (r5) return r5.vernacularName;
+  if (pl !== 'eng') {
+    const r6 = pick(v => normLang(v.language) === 'eng');
+    if (r6) return r6.vernacularName;
   }
 
   return ''; // no match — caller will fall back to scientific name
@@ -1575,6 +1590,21 @@ function buildFilterChips(records) {
     legendItems.appendChild(item);
   });
   filterSection.style.display = 'block'; legend.style.display = 'block';
+
+  const selectAllBtn = document.getElementById('selectAllChipsBtn');
+  function syncSelectAllBtn() {
+    selectAllBtn.textContent = allGroupKeys.every(k => activeFilters.has(k)) ? 'Deselect all' : 'Select all';
+  }
+  syncSelectAllBtn();
+  selectAllBtn.onclick = () => {
+    const allOn = allGroupKeys.every(k => activeFilters.has(k));
+    allGroupKeys.forEach(k => allOn ? activeFilters.delete(k) : activeFilters.add(k));
+    refreshChips();
+    syncSelectAllBtn();
+  };
+  // Keep label in sync when chips are clicked individually
+  const _baseRefresh = refreshChips;
+  refreshChips = () => { _baseRefresh(); syncSelectAllBtn(); };
 }
 
 // GBIF credentials
