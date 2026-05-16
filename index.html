@@ -852,7 +852,7 @@ async function lookupCommonNames(records) {
   }
   records.forEach(r => {
     const apiName = r.taxonKey && commonNameCache[r.taxonKey];
-    if (apiName && (!r.vernacularName || isBandingCode(r.vernacularName))) r.vernacularName = apiName;
+    if (apiName) r.vernacularName = apiName;
   });
 }
 
