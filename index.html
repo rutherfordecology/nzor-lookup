@@ -926,10 +926,8 @@ function buildRecordPage(rec) {
   const link    = gbifId ? '<div style="margin-top:4px;"><a href="https://www.gbif.org/occurrence/' + gbifId + '" target="_blank" rel="noopener" style="color:#2a7a58;font-size:12px;">View on GBIF \u2197</a></div>' : '';
   const photoId = 'gbif-photo-' + (gbifId || Math.random().toString(36).slice(2));
   return {
-    html: '<div style="display:flex;gap:10px;">' +
-            '<div style="flex:1;min-width:0;">' + primary + cls + date + source + uncert + geoWarn + link + '</div>' +
-            '<div id="' + photoId + '" style="width:300px;min-width:300px;flex-shrink:0;"></div>' +
-          '</div>',
+    html: '<div id="' + photoId + '" style="margin-bottom:8px;"></div>' +
+          primary + cls + date + source + uncert + geoWarn + link,
     photoId,
     taxonKey: rec.taxonKey,
     scientificName: rec.scientificName || ''
@@ -946,7 +944,7 @@ async function loadPopupPhoto(photoId, taxonKey, sciName) {
   if (photo) {
     slot.innerHTML =
       '<img src="' + photo.url + '" alt="' + (sciName || '') + '" ' +
-      'style="width:100%;height:340px;object-fit:cover;border-radius:4px;display:block;" ' +
+      'style="width:100%;height:260px;object-fit:cover;border-radius:4px;display:block;" ' +
       'onerror="this.parentElement.innerHTML=\'\'"> ' +
       '<div style="font-size:9px;color:#9b9890;margin-top:2px;line-height:1.3;">' +
       licenceBadge(photo.licence) + (photo.photographer || '') + '</div>';
@@ -1062,18 +1060,14 @@ function makeStackedPopup(stackedRecords) {
 
     const pin = '📍';
     return (
-      '<div style="display:flex;gap:12px;">' +
-        '<div style="flex:1;min-width:0;">' +
-          '<div style="font-size:10.5px;color:#2a7a58;font-weight:600;margin-bottom:5px;">' + pin + ' ' + total + ' records \xb7 ' + speciesCount + ' species</div>' +
-          '<div id="' + popupId + '-splist" style="overflow-y:auto;max-height:120px;border-bottom:1px solid #eee;margin-bottom:6px;">' + spItems + '</div>' +
-          '<div id="' + popupId + '-detail"></div>' +
-        '</div>' +
-        '<div id="' + popupId + '-photo" style="width:300px;min-width:300px;flex-shrink:0;"></div>' +
-      '</div>'
+      '<div id="' + popupId + '-photo" style="margin-bottom:8px;"></div>' +
+      '<div style="font-size:10.5px;color:#2a7a58;font-weight:600;margin-bottom:5px;">' + pin + ' ' + total + ' records \xb7 ' + speciesCount + ' species</div>' +
+      '<div id="' + popupId + '-splist" style="overflow-y:auto;max-height:110px;border-bottom:1px solid #eee;margin-bottom:6px;">' + spItems + '</div>' +
+      '<div id="' + popupId + '-detail"></div>'
     );
   }
 
-  const popup = L.popup({ maxWidth: isMulti ? 620 : 580, minWidth: isMulti ? 560 : 520, autoPan: true });
+  const popup = L.popup({ maxWidth: isMulti ? 380 : 340, minWidth: isMulti ? 320 : 280, autoPan: true });
   window._gbifPopupState[popupId] = { idx: 0, sorted, popup, multiRecord: isMulti, speciesList };
 
   popup.setContent(buildShell());
