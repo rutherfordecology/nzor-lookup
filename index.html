@@ -1099,15 +1099,18 @@ window._gbifSelectSpecies = function(pid, spIdx) {
     });
   }
 
-  // Build record rows for this species
+  // Build record rows for this species (capped at 8, remainder shown as count)
   const photoSlotId = pid + '-photo-' + spIdx;
-  const recordRows = sp.records.map(r => {
+  const MAX_ROWS = 8;
+  const shown = sp.records.slice(0, MAX_ROWS);
+  const hidden = sp.records.length - shown.length;
+  const recordRows = shown.map(r => {
     const date = r.eventDate ? '<span style="font-size:12px;">' + r.eventDate + '</span>' : '';
     const link = r.gbifID
       ? ' <a href="https://www.gbif.org/occurrence/' + r.gbifID + '" target="_blank" rel="noopener" style="color:#2a7a58;font-size:11px;">View on GBIF ↗</a>'
       : '';
     return '<div style="padding:1px 0;">' + date + link + '</div>';
-  }).join('');
+  }).join('') + (hidden > 0 ? '<div style="font-size:11px;color:#9b9890;margin-top:3px;">+ ' + hidden + ' more record' + (hidden === 1 ? '' : 's') + '</div>' : '');
 
   const nameHtml = sp.common
     ? '<div style="font-weight:600;font-size:13px;">' + sp.common + '</div>' +
