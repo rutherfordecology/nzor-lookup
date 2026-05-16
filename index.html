@@ -66,9 +66,10 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
 .check-row { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--text); margin-bottom: 0.45rem; }
 .check-row input[type=checkbox] { width: 14px; height: 14px; accent-color: var(--green); }
 
-.run-btn { width: 100%; padding: 9px; font-size: 14px; font-family: var(--font-sans); font-weight: 500; background: var(--green-dark); color: white; border: none; border-radius: var(--radius); cursor: pointer; transition: opacity 0.15s; }
+.run-btn { width: 100%; padding: 9px; font-size: 14px; font-family: var(--font-sans); font-weight: 500; background: var(--green-dark); color: white; border: none; border-radius: var(--radius); cursor: pointer; transition: background 0.15s, opacity 0.15s; }
 .run-btn:hover:not(:disabled) { opacity: 0.88; }
 .run-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.run-btn.cancelling { background: #b91c1c; }
 
 .status-bar { font-size: 12px; padding: 8px 10px; border-radius: var(--radius); margin-top: 0.7rem; line-height: 1.55; display: none; }
 .status-bar.info    { background: var(--blue-light);  color: var(--blue);       border: 0.5px solid var(--blue-mid); }
@@ -314,7 +315,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
 <header>
   <div class="header-brand">
     <h1><a href="https://sites.google.com/view/rutherford-ecology/?read_current=1" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a></h1>
-    <span style="font-size:15px;font-weight:600;color:rgba(255,255,255,0.85);">GBIF Record Finder</span> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.4);letter-spacing:0.04em;">v1.05</span><img src="logo.png" alt="GBIF Record Finder logo" style="height:46px;width:auto;margin-left:4px;filter:brightness(0) invert(1);opacity:0.9;">
+    <span style="font-size:15px;font-weight:600;color:rgba(255,255,255,0.85);">GBIF Record Finder</span> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.4);letter-spacing:0.04em;">v1.06</span><img src="logo.png" alt="GBIF Record Finder logo" style="height:46px;width:auto;margin-left:4px;filter:brightness(0) invert(1);opacity:0.9;">
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -722,6 +723,19 @@ document.getElementById('clClearSel').addEventListener('click', () => clearSpeci
 
 // Helpers
 let fetchAbortFlag = false;
+let isFetching = false;
+function setFetchMode(fetching) {
+  isFetching = fetching;
+  if (fetching) {
+    runBtn.textContent = '✕  Cancel fetching';
+    runBtn.classList.add('cancelling');
+    runBtn.disabled = false;
+  } else {
+    runBtn.textContent = 'Fetch occurrences from GBIF';
+    runBtn.classList.remove('cancelling');
+    runBtn.disabled = polygons.length === 0;
+  }
+}
 function setStatus(msg, type, withCancel) {
   statusBar.className = 'status-bar ' + type;
   statusBar.style.display = 'block';
@@ -1680,8 +1694,14 @@ function buildTaxonParams(keys) {
 
 // GBIF live occurrence search API — returns same records as the GBIF browser (no snapshot lag)
 runBtn.addEventListener('click', async () => {
+  if (isFetching) {
+    fetchAbortFlag = true;
+    runBtn.textContent = 'Cancelling…';
+    runBtn.disabled = true;
+    return;
+  }
   if (polygons.length === 0) return;
-  runBtn.disabled = true; fetchAbortFlag = false; clearResults();
+  setFetchMode(true); fetchAbortFlag = false; clearResults();
   taxonMenu.style.display = 'none';
 
   const dateFrom  = document.getElementById('dateFrom').value;
@@ -1704,14 +1724,14 @@ runBtn.addEventListener('click', async () => {
     while (true) {
       if (fetchAbortFlag) {
         setStatus('Fetch cancelled.', 'warning');
-        runBtn.disabled = false; return;
+        setFetchMode(false); return;
       }
       const qs = [...baseParams, ['offset', String(offset)]].map(([k,v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v)).join('&');
       try {
         const res = await fetch('https://api.gbif.org/v1/occurrence/search?' + qs);
         if (!res.ok) {
           const txt = await res.text();
-          if (res.status === 400) { setStatus('GBIF rejected the polygon — try simplifying it.', 'error'); runBtn.disabled = false; return; }
+          if (res.status === 400) { setStatus('GBIF rejected the polygon — try simplifying it.', 'error'); setFetchMode(false); return; }
           throw new Error('HTTP ' + res.status + ': ' + txt.substring(0, 200));
         }
         const json = await res.json();
@@ -1787,12 +1807,12 @@ runBtn.addEventListener('click', async () => {
           '① draw a smaller polygon  ② select specific taxa  ③ use a shorter year range',
           'error'
         );
-        runBtn.disabled = false; return;
+        setFetchMode(false); return;
       }
     }
   }
 
-  if (allFetched.length === 0) { setStatus('No records found for any polygon with these parameters.', 'warning'); runBtn.disabled = false; return; }
+  if (allFetched.length === 0) { setStatus('No records found for any polygon with these parameters.', 'warning'); setFetchMode(false); return; }
 
   setStatus('Looking up common names...', 'info');
   await lookupCommonNames(allFetched);
@@ -1832,7 +1852,7 @@ runBtn.addEventListener('click', async () => {
   showRichness(allFetched);
 
   setStatus(allFetched.length.toLocaleString() + ' records loaded — complete dataset from GBIF.', 'success');
-  runBtn.disabled = false;
+  setFetchMode(false);
 });
 
 
