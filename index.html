@@ -937,23 +937,50 @@ async function loadPopupPhoto(photoId, taxonKey, sciName) {
   }
 }
 
+
 window._gbifPopupState = {};
 
-function buildRecordDetails(rec) {
-  const common  = rec.vernacularName || (rec.taxonKey && commonNameCache[rec.taxonKey]) || '';
-  const primary = common
-    ? '<div style="font-weight:600;font-size:13px;">' + common + '</div>' +
-      '<div style="color:#9b9890;font-size:11px;font-style:italic;margin-top:1px;">' + (rec.scientificName || '') + '</div>'
-    : '<div style="font-weight:600;font-size:13px;font-style:italic;">' + (rec.scientificName || 'Unknown') + '</div>';
-  const date    = rec.eventDate   ? '<div style="margin-top:4px;font-size:12px;"><b>Date:</b> ' + rec.eventDate + '</div>' : '';
-  const source  = rec.datasetName ? '<div style="font-size:12px;"><b>Source:</b> ' + rec.datasetName + '</div>' : '';
-  const gbifId  = rec.gbifID;
-  const link    = gbifId ? '<div style="margin-top:4px;"><a href="https://www.gbif.org/occurrence/' + gbifId + '" target="_blank" rel="noopener" style="color:#2a7a58;font-size:12px;">View on GBIF ↗</a></div>' : '';
-  return primary + date + source + link;
-}
+window._gbifSelectSpecies = function(pid, spIdx) {
+  const state = window._gbifPopupState[pid];
+  if (!state || !state.speciesList) return;
+  state.selSp = spIdx;
+  const sp = state.speciesList[spIdx];
 
-// Navigation: only update the stable inner divs — never call setContent() which forces
-// Leaflet to re-render and close the popup
+  // Update selection highlight in species list
+  const listEl = document.getElementById(pid + '-splist');
+  if (listEl) {
+    listEl.querySelectorAll('[data-sp]').forEach(el => {
+      const i = parseInt(el.dataset.sp);
+      el.style.background = i === spIdx ? '#e8f4ef' : '';
+    });
+  }
+
+  // Build record rows for this species
+  const photoSlotId = pid + '-photo-' + spIdx;
+  const recordRows = sp.records.map(r => {
+    const date = r.eventDate ? '<span style="font-size:12px;">' + r.eventDate + '</span>' : '';
+    const link = r.gbifID
+      ? ' <a href="https://www.gbif.org/occurrence/' + r.gbifID + '" target="_blank" rel="noopener" style="color:#2a7a58;font-size:11px;">View on GBIF ↗</a>'
+      : '';
+    return '<div style="padding:1px 0;">' + date + link + '</div>';
+  }).join('');
+
+  const nameHtml = sp.common
+    ? '<div style="font-weight:600;font-size:13px;">' + sp.common + '</div>' +
+      '<div style="color:#9b9890;font-size:11px;font-style:italic;margin-top:1px;">' + sp.sci + '</div>'
+    : '<div style="font-weight:600;font-size:13px;font-style:italic;">' + (sp.sci || 'Unknown') + '</div>';
+
+  const detailEl = document.getElementById(pid + '-detail');
+  if (detailEl) {
+    detailEl.innerHTML =
+      '<div id="' + photoSlotId + '" style="margin-bottom:6px;"></div>' +
+      nameHtml +
+      '<div style="margin-top:5px;">' + recordRows + '</div>';
+    setTimeout(() => loadPopupPhoto(photoSlotId, sp.taxonKey, sp.sci), 30);
+  }
+};
+
+// Navigation for single-record paging (multi-record uses _gbifSelectSpecies instead)
 window._gbifPopupNav = function(pid, dir) {
   const state = window._gbifPopupState[pid];
   if (!state) return;
@@ -961,19 +988,13 @@ window._gbifPopupNav = function(pid, dir) {
   const idx = state.idx;
   const rec = state.sorted[idx];
   const total = state.sorted.length;
-
   const counterEl = document.getElementById(pid + '-counter');
   if (counterEl) counterEl.innerHTML = 'Record <b>' + (idx + 1) + '</b> of <b>' + total + '</b>';
-
   const bodyEl = document.getElementById(pid + '-body');
   if (bodyEl) {
-    if (state.multiRecord) {
-      bodyEl.innerHTML = buildRecordDetails(rec);
-    } else {
-      const page = buildRecordPage(rec);
-      bodyEl.innerHTML = page.html;
-      setTimeout(() => loadPopupPhoto(page.photoId, rec.taxonKey, rec.scientificName), 30);
-    }
+    const page = buildRecordPage(rec);
+    bodyEl.innerHTML = page.html;
+    setTimeout(() => loadPopupPhoto(page.photoId, rec.taxonKey, rec.scientificName), 30);
   }
 };
 
@@ -982,57 +1003,55 @@ function makeStackedPopup(stackedRecords) {
   const total = sorted.length;
   const isMulti = total > 1;
   const popupId = 'mp-' + Math.random().toString(36).slice(2);
-  const speciesCount = new Set(sorted.map(r => r.scientificName||r.species).filter(Boolean)).size;
 
-  function buildSpeciesList() {
-    const seen = new Map();
-    sorted.forEach(r => {
-      const sci = r.scientificName || r.species || '';
-      if (sci && !seen.has(sci)) {
-        const common = r.vernacularName || (r.taxonKey && commonNameCache[r.taxonKey]) || '';
-        seen.set(sci, { common, sci });
-      }
-    });
-    const items = [...seen.values()].map(({ common, sci }) =>
-      common
-        ? '<div style="font-size:11px;line-height:1.6;">' + common +
-          ' <span style="color:#9b9890;font-style:italic;">' + sci + '</span></div>'
-        : '<div style="font-size:11px;font-style:italic;color:#555;line-height:1.6;">' + sci + '</div>'
-    ).join('');
-    return '<div style="overflow-y:auto;max-height:105px;">' + items + '</div>';
-  }
+  // Build species map: sci -> { common, sci, taxonKey, records[] }
+  const speciesMap = new Map();
+  sorted.forEach(r => {
+    const sci = r.scientificName || r.species || '';
+    if (!speciesMap.has(sci)) {
+      speciesMap.set(sci, {
+        common: r.vernacularName || (r.taxonKey && commonNameCache[r.taxonKey]) || '',
+        sci,
+        taxonKey: r.taxonKey,
+        records: []
+      });
+    }
+    speciesMap.get(sci).records.push(r);
+  });
+  const speciesList = [...speciesMap.values()];
+  const speciesCount = speciesList.length;
 
   function buildShell() {
     if (!isMulti) {
       const page0 = buildRecordPage(sorted[0]);
       return '<div id="' + popupId + '-body">' + page0.html + '</div>';
     }
-    const headerPhotoId = popupId + '-hphoto';
-    const header =
-      '<div style="display:flex;gap:10px;margin-bottom:7px;">' +
-        '<div id="' + headerPhotoId + '" style="width:90px;min-width:90px;height:110px;border-radius:4px;background:#f3f2ee;overflow:hidden;flex-shrink:0;"></div>' +
-        '<div style="flex:1;min-width:0;">' +
-          '<div style="font-size:10.5px;color:#2a7a58;font-weight:600;margin-bottom:4px;">📍 ' + total + ' records · ' + speciesCount + ' species</div>' +
-          buildSpeciesList() +
-        '</div>' +
-      '</div>';
-    const nav =
-      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;padding:4px 0;border-top:1px solid #eee;border-bottom:1px solid #eee;">' +
-        '<button onclick="event.stopPropagation();window._gbifPopupNav(\'' + popupId + '\',-1)" style="border:1px solid #ddd;background:#f5f5f3;border-radius:4px;padding:2px 10px;cursor:pointer;font-size:16px;line-height:1;">‹</button>' +
-        '<span id="' + popupId + '-counter" style="font-size:11px;color:#6b6960;">Record <b>1</b> of <b>' + total + '</b></span>' +
-        '<button onclick="event.stopPropagation();window._gbifPopupNav(\'' + popupId + '\',1)" style="border:1px solid #ddd;background:#f5f5f3;border-radius:4px;padding:2px 10px;cursor:pointer;font-size:16px;line-height:1;">›</button>' +
-      '</div>';
-    return header + nav + '<div id="' + popupId + '-body">' + buildRecordDetails(sorted[0]) + '</div>';
+
+    const spItems = speciesList.map((sp, i) =>
+      '<div data-sp="' + i + '" ' +
+      'onclick="event.stopPropagation();window._gbifSelectSpecies(\'' + popupId + '\',' + i + ')"' +
+      'style="cursor:pointer;padding:3px 4px;border-radius:3px;font-size:11px;line-height:1.5;' + (i === 0 ? 'background:#e8f4ef;' : '') + '">' +
+      (sp.common
+        ? sp.common + ' <span style="color:#9b9890;font-style:italic;">' + sp.sci + '</span>'
+        : '<span style="font-style:italic;color:#555;">' + sp.sci + '</span>'
+      ) +
+      ' <span style="color:#aaa;font-size:10px;">(' + sp.records.length + ')</span>' +
+      '</div>'
+    ).join('');
+
+    const header = '<div style="font-size:10.5px;color:#2a7a58;font-weight:600;margin-bottom:5px;">📍 ' + total + ' records · ' + speciesCount + ' species</div>';
+    const list = '<div id="' + popupId + '-splist" style="overflow-y:auto;max-height:115px;border-bottom:1px solid #eee;margin-bottom:7px;">' + spItems + '</div>';
+    const detail = '<div id="' + popupId + '-detail"></div>';
+    return header + list + detail;
   }
 
-  const popup = L.popup({ maxWidth: isMulti ? 360 : 290, minWidth: isMulti ? 320 : 240, autoPan: true });
-  window._gbifPopupState[popupId] = { idx: 0, sorted, popup, multiRecord: isMulti };
+  const popup = L.popup({ maxWidth: isMulti ? 340 : 290, minWidth: isMulti ? 300 : 240, autoPan: true });
+  window._gbifPopupState[popupId] = { idx: 0, sorted, popup, multiRecord: isMulti, speciesList };
 
   popup.setContent(buildShell());
   popup.on('add', () => {
     if (isMulti) {
-      const rec0 = sorted[0];
-      setTimeout(() => loadPopupPhoto(popupId + '-hphoto', rec0.taxonKey, rec0.scientificName), 50);
+      setTimeout(() => window._gbifSelectSpecies(popupId, 0), 50);
     } else {
       const page0 = buildRecordPage(sorted[0]);
       setTimeout(() => loadPopupPhoto(page0.photoId, sorted[0].taxonKey, sorted[0].scientificName), 50);
@@ -1040,6 +1059,7 @@ function makeStackedPopup(stackedRecords) {
   });
   return popup;
 }
+
 
 function makeMarker(stackedRecords) {
   const rep = stackedRecords[0];
