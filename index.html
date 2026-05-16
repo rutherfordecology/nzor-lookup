@@ -46,6 +46,12 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
 .sidebar { background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; display: flex; flex-direction: column; min-height: 0; }
 .sidebar-section { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); }
 .section-label { font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text3); margin-bottom: 0.7rem; }
+.section-label.collapsible { cursor: pointer; display: flex; align-items: center; justify-content: space-between; user-select: none; margin-bottom: 0; }
+.section-label.collapsible:hover { color: var(--text2); }
+.section-chevron { font-size: 9px; transition: transform 0.2s; display: inline-block; }
+.section-label.collapsible.collapsed .section-chevron { transform: rotate(-90deg); }
+.section-body { margin-top: 0.7rem; }
+.section-body.collapsed { display: none; }
 .instruction-box { background: var(--green-light); border: 0.5px solid var(--green-mid); border-radius: var(--radius); padding: 10px 12px; font-size: 12.5px; color: var(--green-dark); line-height: 1.65; margin-bottom: 0.8rem; }
 
 .drop-zone { border: 1.5px dashed var(--border2); border-radius: var(--radius); padding: 14px 10px; text-align: center; cursor: pointer; transition: all 0.15s; background: var(--surface2); }
@@ -328,7 +334,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
 <header>
   <div class="header-brand">
     <h1><a href="https://sites.google.com/view/rutherford-ecology/?read_current=1" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a></h1>
-    <span style="font-size:15px;font-weight:600;color:rgba(255,255,255,0.85);">GBIF Record Finder</span> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.4);letter-spacing:0.04em;">v1.21</span><img src="logo.png" alt="GBIF Record Finder logo" style="height:46px;width:auto;margin-left:4px;filter:brightness(0) invert(1);opacity:0.9;">
+    <span style="font-size:15px;font-weight:600;color:rgba(255,255,255,0.85);">GBIF Record Finder</span> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.4);letter-spacing:0.04em;">v1.22</span><img src="logo.png" alt="GBIF Record Finder logo" style="height:46px;width:auto;margin-left:4px;filter:brightness(0) invert(1);opacity:0.9;">
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -343,25 +349,28 @@ html, body { max-width: 100vw; overflow-x: hidden; }
   <div class="sidebar">
 
     <div class="sidebar-section">
-      <div class="section-label">1 · Define area</div>
-      <div class="drop-zone" id="dropZone" style="padding:12px 10px;">
-        <input type="file" id="fileInput" accept=".kml,.kmz" multiple>
-        <div style="font-size:12px;color:var(--green-dark);line-height:1.6;margin-bottom:8px;">
-          Draw a polygon on the map using the <strong>polygon tool</strong> (top-left of map), or drop a <strong>KML/KMZ</strong> file below. Multiple areas supported.
+      <div class="section-label collapsible" data-section="s1">1 · Define area <span class="section-chevron">▾</span></div>
+      <div class="section-body" id="s1">
+        <div class="drop-zone" id="dropZone" style="padding:12px 10px;">
+          <input type="file" id="fileInput" accept=".kml,.kmz" multiple>
+          <div style="font-size:12px;color:var(--green-dark);line-height:1.6;margin-bottom:8px;">
+            Draw a polygon on the map using the <strong>polygon tool</strong> (top-left of map), or drop a <strong>KML/KMZ</strong> file below. Multiple areas supported.
+          </div>
+          <div style="border-top:1px dashed var(--border2);padding-top:8px;display:flex;align-items:center;gap:8px;justify-content:center;">
+            <span style="font-size:18px;">&#128506;</span>
+            <span style="font-size:12px;color:var(--text2);">Drop KML/KMZ here, or <span style="color:var(--green);text-decoration:underline;">browse</span></span>
+          </div>
         </div>
-        <div style="border-top:1px dashed var(--border2);padding-top:8px;display:flex;align-items:center;gap:8px;justify-content:center;">
-          <span style="font-size:18px;">&#128506;</span>
-          <span style="font-size:12px;color:var(--text2);">Drop KML/KMZ here, or <span style="color:var(--green);text-decoration:underline;">browse</span></span>
+        <div class="poly-list" id="polyList">
+          <div class="poly-empty" id="polyEmpty">No polygons loaded</div>
         </div>
+        <button class="small-btn" id="clearAllBtn" style="display:none">&#x2715; Clear all polygons</button>
       </div>
-      <div class="poly-list" id="polyList">
-        <div class="poly-empty" id="polyEmpty">No polygons loaded</div>
-      </div>
-      <button class="small-btn" id="clearAllBtn" style="display:none">&#x2715; Clear all polygons</button>
     </div>
 
     <div class="sidebar-section">
-      <div class="section-label">2 · Parameters</div>
+      <div class="section-label collapsible" data-section="s2">2 · Parameters <span class="section-chevron">▾</span></div>
+      <div class="section-body" id="s2">
       <div class="half">
         <div class="field"><label>Date from</label><input type="date" id="dateFrom" style="width:100%;"></div>
         <div class="field"><label>Date to</label><input type="date" id="dateTo" style="width:100%;"></div>
@@ -403,22 +412,25 @@ html, body { max-width: 100vw; overflow-x: hidden; }
           </div>
         </div>
       </div>
+      </div><!-- /s2 -->
 
     </div>
 
     <div class="sidebar-section">
-      <div class="section-label">3 · Fetch data</div>
-      <button class="run-btn" id="runBtn" disabled>Fetch occurrences from GBIF</button>
-      <div class="status-bar" id="statusBar"></div>
-      <div class="progress-wrap" id="progressWrap">
-        <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
-        <div class="progress-label" id="progressLabel"></div>
-      </div>
-      <div class="metrics" id="metricsGrid" style="display:none">
-        <div class="metric"><div class="metric-label">Records</div><div class="metric-value" id="mRecords">-</div></div>
-        <div class="metric"><div class="metric-label">Species</div><div class="metric-value" id="mSpecies">-</div></div>
-        <div class="metric"><div class="metric-label">Shown</div><div class="metric-value" id="mShown">-</div></div>
-      </div>
+      <div class="section-label collapsible" data-section="s3">3 · Fetch data <span class="section-chevron">▾</span></div>
+      <div class="section-body" id="s3">
+        <button class="run-btn" id="runBtn" disabled>Fetch occurrences from GBIF</button>
+        <div class="status-bar" id="statusBar"></div>
+        <div class="progress-wrap" id="progressWrap">
+          <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+          <div class="progress-label" id="progressLabel"></div>
+        </div>
+        <div class="metrics" id="metricsGrid" style="display:none">
+          <div class="metric"><div class="metric-label">Records</div><div class="metric-value" id="mRecords">-</div></div>
+          <div class="metric"><div class="metric-label">Species</div><div class="metric-value" id="mSpecies">-</div></div>
+          <div class="metric"><div class="metric-label">Shown</div><div class="metric-value" id="mShown">-</div></div>
+        </div>
+      </div><!-- /s3 -->
     </div>
 
     <div class="sidebar-section" id="outputSection" style="display:none">
@@ -746,6 +758,24 @@ const _fromYear = _today.getFullYear() - 5;
 const _fromStr  = _fromYear + '-01-01';
 document.getElementById('dateTo').value   = _todayStr;
 document.getElementById('dateFrom').value = _fromStr;
+// Collapsible sidebar sections
+document.querySelectorAll('.section-label.collapsible').forEach(label => {
+  label.addEventListener('click', () => {
+    const body = document.getElementById(label.dataset.section);
+    if (!body) return;
+    const isCollapsed = body.classList.toggle('collapsed');
+    label.classList.toggle('collapsed', isCollapsed);
+  });
+});
+function collapseSetupSections() {
+  ['s1','s2','s3'].forEach(id => {
+    const body  = document.getElementById(id);
+    const label = document.querySelector('[data-section="' + id + '"]');
+    if (body)  body.classList.add('collapsed');
+    if (label) label.classList.add('collapsed');
+  });
+}
+
 document.getElementById('clSearchInput').addEventListener('input', filterChecklistSearch);
 document.getElementById('clCloseBtn').addEventListener('click', () => toggleChecklist());
 document.getElementById('clClearSel').addEventListener('click', () => clearSpeciesSelection());
@@ -1890,6 +1920,7 @@ runBtn.addEventListener('click', async () => {
 
   setStatus(allFetched.length.toLocaleString() + ' records loaded — complete dataset from GBIF.', 'success');
   setFetchMode(false);
+  collapseSetupSections();
 });
 
 
