@@ -947,12 +947,35 @@ async function lookupCommonNames(records) {
   //    For English regions, also reject any API name that contains non-ASCII characters —
   //    GBIF occasionally mislabels language codes so Greek/Cyrillic names slip through.
   const asciiOnly = prefLang === 'eng';
+
+  // 3. Build a same-country majority vote from the occurrence records themselves.
+  //    Used only as a fallback when the API has no preferred name for the species.
+  //    Filters: same dominant country, ASCII (for English regions), not a banding code.
+  const voteCounts = {};
+  records.forEach(r => {
+    if (!r.taxonKey || !r.vernacularName) return;
+    if (dominantCountry && r.countryCode !== dominantCountry) return;
+    const n = r.vernacularName.trim();
+    if (!n || isBandingCode(n)) return;
+    if (asciiOnly && /[^\x00-\x7F]/.test(n)) return;
+    if (!voteCounts[r.taxonKey]) voteCounts[r.taxonKey] = {};
+    voteCounts[r.taxonKey][n] = (voteCounts[r.taxonKey][n] || 0) + 1;
+  });
+
+  // 4. Overwrite every record's vernacularName: API preferred → same-country vote → null.
   records.forEach(r => {
     const cached = r.taxonKey ? commonNameCache[r.taxonKey] : undefined;
     let apiName = Array.isArray(cached) ? pickVernacularName(cached, dominantCountry, prefLang) : '';
     if (apiName && asciiOnly && /[^\x00-\x7F]/.test(apiName)) apiName = '';
     if (apiName && isBandingCode(apiName)) apiName = '';
-    r.vernacularName = apiName || null;
+    if (apiName) { r.vernacularName = apiName; return; }
+    // Fallback: most-common name from same-country occurrence records
+    const votes = r.taxonKey ? voteCounts[r.taxonKey] : null;
+    if (votes) {
+      const top = Object.entries(votes).sort((a, b) => b[1] - a[1])[0];
+      if (top) { r.vernacularName = top[0]; return; }
+    }
+    r.vernacularName = null;
   });
 }
 
