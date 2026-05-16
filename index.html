@@ -320,8 +320,8 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
     <div class="sidebar-section">
       <div class="section-label">2 · Parameters</div>
       <div class="half">
-        <div class="field"><label>Date from</label><input type="date" id="dateFrom" value="2015-01-01"></div>
-        <div class="field"><label>Date to</label><input type="date" id="dateTo"></div>
+        <div class="field"><label>Year from</label><input type="number" id="dateFrom" value="2015" min="1800" max="2100" style="width:100%;"></div>
+        <div class="field"><label>Year to</label><input type="number" id="dateTo" min="1800" max="2100" style="width:100%;"></div>
       </div>
       <div class="field">
         <label>Taxon groups</label>
@@ -514,6 +514,7 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
         <li>Individual records may contain errors in identification, location, or date.</li>
         <li>Use as a starting point only — not authoritative data for regulatory purposes.</li>
       </ul>
+      <p style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:1rem;">If this tool saves you a whole lot of time, feel free to <a href="https://buymeacoffee.com/rutherfordecology" target="_blank" style="color:#d4a84b;font-weight:500;">&#9749; buy me a coffee</a>.</p>
       <button class="modal-btn primary" id="disclaimerAccept" style="width:100%;padding:11px;font-size:14px;">Get started &rarr;</button>
     </div>
 
@@ -629,7 +630,7 @@ const clScroll       = document.getElementById('clScroll');
 const qualityBoxEl   = document.getElementById('qualityBox');
 const richnessBoxEl  = document.getElementById('richnessBox');
 
-document.getElementById('dateTo').value = new Date().toISOString().split('T')[0];
+document.getElementById('dateTo').value = new Date().getFullYear();
 document.getElementById('clSearchInput').addEventListener('input', filterChecklistSearch);
 document.getElementById('clCloseBtn').addEventListener('click', () => toggleChecklist());
 document.getElementById('clClearSel').addEventListener('click', () => clearSpeciesSelection());
@@ -1508,8 +1509,8 @@ runBtn.addEventListener('click', async () => {
       { type: 'within', geometry: poly.wkt }
     ];
     if (dateFrom && dateTo) predicates.push({ type: 'and', predicates: [
-      { type: 'greaterThanOrEquals', key: 'YEAR', value: String(new Date(dateFrom).getFullYear()) },
-      { type: 'lessThanOrEquals',    key: 'YEAR', value: String(new Date(dateTo).getFullYear()) }
+      { type: 'greaterThanOrEquals', key: 'YEAR', value: String(parseInt(dateFrom)) },
+      { type: 'lessThanOrEquals',    key: 'YEAR', value: String(parseInt(dateTo)) }
     ]});
     const taxonPred = buildTaxonPredicates(taxonKeys);
     if (taxonPred) predicates.push(taxonPred);
