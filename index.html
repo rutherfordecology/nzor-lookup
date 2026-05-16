@@ -1577,15 +1577,13 @@ function buildFilterChips(records) {
 
     chip.addEventListener('click', () => {
       const activeCount = allGroupKeys.filter(k => activeFilters.has(k)).length;
-      if (!activeFilters.has(g)) {
-        // Chip is off — turn it back on (add all back, not just this one, so user isn't stuck with invisible records)
-        allGroupKeys.forEach(k => activeFilters.add(k));
-      } else if (activeCount === 1) {
+      if (activeCount === 1 && activeFilters.has(g)) {
         // This is the only active chip — restore all
         allGroupKeys.forEach(k => activeFilters.add(k));
       } else {
-        // Multiple chips on — isolate to just this one
-        allGroupKeys.forEach(k => { if (k !== g) activeFilters.delete(k); });
+        // Isolate this chip (works whether it was on or off)
+        allGroupKeys.forEach(k => activeFilters.delete(k));
+        activeFilters.add(g);
       }
       refreshChips();
     });
