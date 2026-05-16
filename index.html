@@ -1549,6 +1549,11 @@ function buildFilterChips(records) {
   filterChips.innerHTML = ''; legendItems.innerHTML = '';
   const allGroupKeys = Object.keys(groups).sort();
   const chipMap = {};
+  const selectAllBtn = document.getElementById('selectAllChipsBtn');
+
+  function syncSelectAllBtn() {
+    if (selectAllBtn) selectAllBtn.textContent = allGroupKeys.every(k => activeFilters.has(k)) ? 'Deselect all' : 'Select all';
+  }
 
   function refreshChips() {
     allGroupKeys.forEach(k => {
@@ -1557,6 +1562,7 @@ function buildFilterChips(records) {
     if (viewMode === 'points') renderPoints(allRecords);
     else renderHeatmap(allRecords);
     filterChecklistByTaxon();
+    syncSelectAllBtn();
   }
 
   allGroupKeys.forEach(g => {
@@ -1572,8 +1578,8 @@ function buildFilterChips(records) {
     chip.addEventListener('click', () => {
       const activeCount = allGroupKeys.filter(k => activeFilters.has(k)).length;
       if (!activeFilters.has(g)) {
-        // Chip is off — turn it back on
-        activeFilters.add(g);
+        // Chip is off — turn it back on (add all back, not just this one, so user isn't stuck with invisible records)
+        allGroupKeys.forEach(k => activeFilters.add(k));
       } else if (activeCount === 1) {
         // This is the only active chip — restore all
         allGroupKeys.forEach(k => activeFilters.add(k));
@@ -1591,20 +1597,12 @@ function buildFilterChips(records) {
   });
   filterSection.style.display = 'block'; legend.style.display = 'block';
 
-  const selectAllBtn = document.getElementById('selectAllChipsBtn');
-  function syncSelectAllBtn() {
-    selectAllBtn.textContent = allGroupKeys.every(k => activeFilters.has(k)) ? 'Deselect all' : 'Select all';
-  }
   syncSelectAllBtn();
-  selectAllBtn.onclick = () => {
+  if (selectAllBtn) selectAllBtn.onclick = () => {
     const allOn = allGroupKeys.every(k => activeFilters.has(k));
     allGroupKeys.forEach(k => allOn ? activeFilters.delete(k) : activeFilters.add(k));
     refreshChips();
-    syncSelectAllBtn();
   };
-  // Keep label in sync when chips are clicked individually
-  const _baseRefresh = refreshChips;
-  refreshChips = () => { _baseRefresh(); syncSelectAllBtn(); };
 }
 
 // GBIF credentials
