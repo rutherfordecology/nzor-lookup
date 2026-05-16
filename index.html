@@ -336,7 +336,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
     <img src="occurd-logo.png" alt="occurd." style="height:28px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
     <h1><a href="https://sites.google.com/view/rutherford-ecology/?read_current=1" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a></h1>
-    <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v1.41</span>
+    <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v1.42</span>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -353,6 +353,12 @@ html, body { max-width: 100vw; overflow-x: hidden; }
     <div class="sidebar-section">
       <div class="section-label collapsible" data-section="s1">1 · Define area <span class="section-chevron">▾</span></div>
       <div class="section-body" id="s1">
+        <div style="position:relative;margin-bottom:10px;">
+          <input type="text" id="mapSearch" placeholder="🔍 Search for a place…" autocomplete="off"
+            style="width:100%;box-sizing:border-box;padding:7px 10px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font-sans);background:var(--surface);color:var(--text);outline:none;"
+            onfocus="this.style.borderColor='var(--green)'" onblur="this.style.borderColor='var(--border)'">
+          <div id="mapSearchResults" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 4px 12px rgba(0,0,0,0.1);z-index:2000;max-height:200px;overflow-y:auto;margin-top:2px;"></div>
+        </div>
         <div class="drop-zone" id="dropZone" style="padding:12px 10px;">
           <input type="file" id="fileInput" accept=".kml,.kmz" multiple>
           <div style="font-size:12px;color:var(--green-dark);line-height:1.6;margin-bottom:8px;">
@@ -698,6 +704,63 @@ undoPointBtn.addEventListener('click', onUndoPoint);
 cancelDrawBtn.addEventListener('pointerdown', onCancelDraw);
 cancelDrawBtn.addEventListener('touchstart', onCancelDraw, { passive: false });
 cancelDrawBtn.addEventListener('click', onCancelDraw);
+
+// Map search (Nominatim geocoder)
+(function() {
+  const input   = document.getElementById('mapSearch');
+  const results = document.getElementById('mapSearchResults');
+  let debounce  = null;
+
+  function showResults(items) {
+    if (!items.length) { results.style.display = 'none'; return; }
+    results.innerHTML = items.map((item, i) =>
+      '<div data-i="' + i + '" style="padding:7px 10px;font-size:12px;cursor:pointer;border-bottom:0.5px solid var(--border);line-height:1.4;">' +
+      '<span style="font-weight:500;">' + item.display_name.split(',')[0] + '</span>' +
+      '<span style="color:var(--text3);"> · ' + item.display_name.split(',').slice(1, 3).join(',').trim() + '</span>' +
+      '</div>'
+    ).join('');
+    results.style.display = 'block';
+    results.querySelectorAll('[data-i]').forEach(el => {
+      el.addEventListener('mouseenter', () => el.style.background = 'var(--surface2)');
+      el.addEventListener('mouseleave', () => el.style.background = '');
+      el.addEventListener('mousedown', e => {
+        e.preventDefault();
+        const item = items[parseInt(el.dataset.i)];
+        const lat = parseFloat(item.lat), lng = parseFloat(item.lon);
+        const bb  = item.boundingbox;
+        if (bb) {
+          map.fitBounds([[parseFloat(bb[0]), parseFloat(bb[2])], [parseFloat(bb[1]), parseFloat(bb[3])]],
+            { maxZoom: 13, padding: [20, 20] });
+        } else {
+          map.setView([lat, lng], 11);
+        }
+        input.value = item.display_name.split(',')[0];
+        results.style.display = 'none';
+      });
+    });
+  }
+
+  input.addEventListener('input', () => {
+    clearTimeout(debounce);
+    const q = input.value.trim();
+    if (q.length < 2) { results.style.display = 'none'; return; }
+    debounce = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          'https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(q) +
+          '&format=json&limit=6&addressdetails=0&email=rutherfordecology%40gmail.com');
+        if (!res.ok) return;
+        showResults(await res.json());
+      } catch(e) {}
+    }, 400);
+  });
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('#mapSearch') && !e.target.closest('#mapSearchResults')) {
+      results.style.display = 'none';
+    }
+  });
+})();
 
 map.on(L.Draw.Event.CREATED, e => {
   const raw = e.layer.getLatLngs();
