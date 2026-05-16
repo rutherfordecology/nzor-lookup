@@ -1,36 +1,36 @@
-# GBIF Record Finder
+# occurd.
 
-A browser-based tool for fetching, filtering, and exporting biodiversity occurrence records from the [GBIF occurrence database](https://www.gbif.org/). No login, no install — just draw a polygon and go.
+Biodiversity occurrence records, mapped. Draw a polygon, set your filters, fetch from GBIF — no login, no install, no backend.
 
-**[Open the app](https://rutherfordecology.github.io/GBIF-Record-Finder/)**
+**[Open occurd.](https://rutherfordecology.github.io/GBIF-Record-Finder/)**
 
 ---
 
 ## What it does
 
-Draw one or more polygons on the map (or drop in a KML/KMZ file), set a year range and taxon filter, and fetch all matching occurrence records from GBIF for that area. Results are displayed as clustered points or a heatmap, with a species checklist and export options.
+Draw one or more polygons on the map (or drop in a KML/KMZ file), set a date range and taxon filter, and pull all matching occurrence records from GBIF for that area. Results appear as clustered points or a heatmap, alongside a species checklist and export options.
 
 ---
 
 ## Features
 
 - **Draw polygons** directly on the map, or import KML/KMZ files
-- **Fetch from GBIF** — queries the GBIF occurrence search API, no account needed
+- **Query GBIF** — live occurrence data, no account needed
 - **Filter by taxon group** — Birds, Mammals, Reptiles, Amphibians, Fish, Insects, Plants, Fungi, and more
-- **Filter by year range** — defaults to the last 5 years
+- **Filter by date range** — defaults to the last 5 years
 - **Points or heatmap** view
-- **Species checklist** — click a species to highlight its records on the map, with photos pulled from iNaturalist
+- **Species checklist** — click a species to highlight its records on the map, with photos from iNaturalist
+- **Record photos** — where available, view the photo attached to an individual occurrence and toggle back to the species photo
 - **Export** — CSV, GeoJSON, KML, or a species list CSV
 - **Coordinate precision warning** — flags low-precision records (>1.5 km uncertainty)
-- **10,000 record limit** — fetch aborts early if the result set is too large to be useful
 - **Mobile friendly** — works on phones and tablets
 
 ---
 
 ## How to use
 
-1. **Draw an area** — click the polygon tool (top-left of map) and draw your study area. You can draw multiple polygons. Alternatively, drop a KML or KMZ file onto the drop zone.
-2. **Set parameters** — adjust the year range and taxon group filter if needed.
+1. **Draw an area** — click the polygon tool (top-left of map) and draw your study area. Multiple polygons are supported. Alternatively, drop a KML or KMZ file onto the drop zone.
+2. **Set parameters** — adjust the date range and taxon group filter if needed.
 3. **Fetch** — click *Fetch occurrences from GBIF*. A cancel button appears while fetching.
 4. **Explore** — switch between Points and Heatmap, filter by taxon chips, or open the species checklist.
 5. **Export** — download your results as CSV, GeoJSON, KML, or a species list.
