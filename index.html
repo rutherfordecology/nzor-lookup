@@ -1520,6 +1520,7 @@ runBtn.addEventListener('click', async () => {
   buildFilterChips(allFetched);
   buildChecklist(allFetched);
   renderPoints(allFetched);
+  setTimeout(() => map.invalidateSize(), 50);
   csvData = buildCSV(allFetched);
   outputSection.style.display = 'block';
 
