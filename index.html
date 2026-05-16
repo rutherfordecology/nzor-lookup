@@ -576,18 +576,28 @@ let clusterLayer = null, heatLayer = null;
 const drawControl = new L.Control.Draw({
   edit: { featureGroup: polyLayer, edit: false, remove: false },
   draw: {
-    polygon: { shapeOptions: { color: '#2a7a58', fillColor: '#2a7a58', fillOpacity: 0.1, weight: 2 }, showArea: false },
+    polygon: { shapeOptions: { color: '#2a7a58', fillColor: '#2a7a58', fillOpacity: 0.1, weight: 2 }, showArea: false, repeatMode: false },
     polyline: false, rectangle: false, circle: false, circlemarker: false, marker: false
   }
 }).addTo(map);
 
+let _lastPolyCreated = 0;
+
 map.on(L.Draw.Event.CREATED, e => {
+  _lastPolyCreated = Date.now();
   const raw = e.layer.getLatLngs();
   const latlngs = Array.isArray(raw[0]) ? raw[0] : (raw[0].lat !== undefined ? raw : raw[0]);
   addPolygon(latlngs, 'Drawn polygon ' + (nextPolyId + 1));
-  // Disable draw toolbar so the closing click doesn't start a new polygon
-  if (drawControl._toolbars && drawControl._toolbars.draw) {
-    drawControl._toolbars.draw.disable();
+  // Send Escape to cancel any drawing that Leaflet.draw auto-restarts
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', keyCode: 27, bubbles: true }));
+});
+
+// Catch and cancel any phantom draw session that starts immediately after polygon creation
+map.on(L.Draw.Event.DRAWSTART, () => {
+  if (Date.now() - _lastPolyCreated < 500) {
+    setTimeout(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', keyCode: 27, bubbles: true }));
+    }, 0);
   }
 });
 
