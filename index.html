@@ -1520,7 +1520,13 @@ runBtn.addEventListener('click', async () => {
   buildFilterChips(allFetched);
   buildChecklist(allFetched);
   renderPoints(allFetched);
-  setTimeout(() => map.invalidateSize(), 50);
+  setTimeout(() => {
+    map.invalidateSize();
+    try {
+      const b = clusterLayer && clusterLayer.getBounds();
+      if (b && b.isValid()) map.fitBounds(b, { padding: [40, 40], maxZoom: 14 });
+    } catch(e) {}
+  }, 100);
   csvData = buildCSV(allFetched);
   outputSection.style.display = 'block';
 
