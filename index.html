@@ -505,15 +505,15 @@ html, body { max-width: 100vw; overflow-x: hidden; }
     <ul>
       <li>Draw a polygon on the map or upload a KML/KMZ file</li>
       <li>Select taxon groups and date range</li>
-      <li>The tool submits a download request to the GBIF occurrence API and polls until ready</li>
-      <li>Records are parsed, mapped, and exported &mdash; all in your browser</li>
+      <li>The tool queries the live GBIF occurrence search API — no login or account required</li>
+      <li>Records are mapped and exported entirely in your browser</li>
     </ul>
 
     <h3>Who it&#39;s for</h3>
     <p>Ecologists, EIA consultants, conservation planners, citizen scientists, and anyone who needs a quick, clean spatial extract of GBIF data without navigating the main portal.</p>
 
     <h3>Data &amp; citation</h3>
-    <p>All data is sourced from GBIF. Please cite GBIF when publishing results based on this tool. Use the format: <em style="font-size:12px;color:var(--text3);">GBIF.org (year), GBIF Occurrence Download, https://doi.org/[your download DOI]</em></p>
+    <p>All data is sourced from GBIF. Please cite GBIF when publishing results based on this tool.</p>
     <p style="margin-top:0.5rem;">Suggested tool citation:<br>
     <em style="font-size:12px;color:var(--text3);">Rutherford Ecology (2026). GBIF Record Finder. https://rutherfordecology.github.io/GBIF-Record-Finder/</em></p>
 
@@ -718,7 +718,19 @@ document.getElementById('clCloseBtn').addEventListener('click', () => toggleChec
 document.getElementById('clClearSel').addEventListener('click', () => clearSpeciesSelection());
 
 // Helpers
-function setStatus(msg, type) { statusBar.textContent = msg; statusBar.className = 'status-bar ' + type; statusBar.style.display = 'block'; }
+let fetchAbortFlag = false;
+function setStatus(msg, type, withCancel) {
+  statusBar.className = 'status-bar ' + type;
+  statusBar.style.display = 'block';
+  if (withCancel) {
+    statusBar.innerHTML = msg +
+      ' <button onclick="fetchAbortFlag=true;this.textContent=\'Cancelling…\';this.disabled=true;" ' +
+      'style="margin-left:8px;background:none;border:1px solid currentColor;border-radius:3px;' +
+      'padding:2px 8px;cursor:pointer;font-size:11px;font-family:var(--font-sans);color:inherit;font-weight:600;">Cancel</button>';
+  } else {
+    statusBar.textContent = msg;
+  }
+}
 function setProgress(pct, label) { progressWrap.style.display = 'block'; progressFill.style.width = pct + '%'; progressLabel.textContent = label; }
 
 const FISH_ORDERS = new Set([
@@ -1639,7 +1651,7 @@ function buildTaxonParams(keys) {
 // GBIF live occurrence search API — returns same records as the GBIF browser (no snapshot lag)
 runBtn.addEventListener('click', async () => {
   if (polygons.length === 0) return;
-  runBtn.disabled = true; clearResults();
+  runBtn.disabled = true; fetchAbortFlag = false; clearResults();
   taxonMenu.style.display = 'none';
 
   const dateFrom  = document.getElementById('dateFrom').value;
@@ -1660,6 +1672,10 @@ runBtn.addEventListener('click', async () => {
 
     let offset = 0, totalCount = null;
     while (true) {
+      if (fetchAbortFlag) {
+        setStatus('Fetch cancelled.', 'warning');
+        runBtn.disabled = false; return;
+      }
       const qs = [...baseParams, ['offset', String(offset)]].map(([k,v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v)).join('&');
       try {
         const res = await fetch('https://api.gbif.org/v1/occurrence/search?' + qs);
@@ -1675,8 +1691,8 @@ runBtn.addEventListener('click', async () => {
           if (totalCount > 30000) {
             setStatus(
               '⚠️ ' + totalCount.toLocaleString() + ' records found — this is a very large query and may fail. ' +
-              'If it does: draw a smaller polygon, select specific taxa, or use a shorter year range.',
-              'warning'
+              'To succeed: smaller polygon, specific taxa, or shorter year range.',
+              'warning', true
             );
           } else if (totalCount > 10000) {
             setStatus(
