@@ -869,7 +869,8 @@ const COUNTRY_LANG = {
 };
 
 // Pick the best vernacular name from a GBIF /vernacularNames results array.
-// Priority: exact country match → preferred language → English → any name.
+// Within each tier, preferred:true entries win over unpreferred ones.
+// No "any language" fallback — if nothing matches the region/language, return ''.
 function pickVernacularName(results, countryCode, prefLang) {
   if (!results || results.length === 0) return '';
   const normLang = l => {
@@ -884,27 +885,30 @@ function pickVernacularName(results, countryCode, prefLang) {
     if (l === 'nl') return 'nld';
     if (l === 'ja') return 'jpn';
     if (l === 'zh') return 'zho';
-    return l.substring(0, 3); // normalise to 3-char
+    return l.substring(0, 3);
   };
   const pl = normLang(prefLang);
   const cc = (countryCode || '').toUpperCase();
+  const pick = (pred) => results.find(v => v.vernacularName && pred(v));
 
-  // 1. Country code match (any language) — most locally specific
-  const byCountry = results.find(v => (v.country || '').toUpperCase() === cc && v.vernacularName);
-  if (byCountry) return byCountry.vernacularName;
+  // 1. Country match, preferred first
+  const r1 = pick(v => (v.country||'').toUpperCase() === cc && v.preferred)
+           || pick(v => (v.country||'').toUpperCase() === cc);
+  if (r1) return r1.vernacularName;
 
-  // 2. Preferred language match
-  const byLang = results.find(v => normLang(v.language) === pl && v.vernacularName);
-  if (byLang) return byLang.vernacularName;
+  // 2. Preferred language, preferred flag first
+  const r2 = pick(v => normLang(v.language) === pl && v.preferred)
+           || pick(v => normLang(v.language) === pl);
+  if (r2) return r2.vernacularName;
 
-  // 3. English fallback
+  // 3. English fallback for non-English regions, preferred flag first
   if (pl !== 'eng') {
-    const byEng = results.find(v => normLang(v.language) === 'eng' && v.vernacularName);
-    if (byEng) return byEng.vernacularName;
+    const r3 = pick(v => normLang(v.language) === 'eng' && v.preferred)
+             || pick(v => normLang(v.language) === 'eng');
+    if (r3) return r3.vernacularName;
   }
 
-  // 4. Any name
-  return results.find(v => v.vernacularName)?.vernacularName || '';
+  return ''; // no match — caller will fall back to scientific name
 }
 
 // Common name lookup
@@ -936,18 +940,21 @@ async function lookupCommonNames(records) {
   }
 
   // 3. Majority-vote vernacular names from occurrence records in the dominant country only.
-  //    Filtering by country prevents records from foreign datasets (e.g. French) from
-  //    skewing the vote for locally-known species (e.g. "Mallard" for NZ eBird records).
+  //    Also reject non-ASCII names when the preferred language is English, to prevent
+  //    foreign-language names from a minority of datasets winning the vote.
+  const asciiOnly = prefLang === 'eng' || prefLang === 'en';
   const nameCounts = {};
   records.forEach(r => {
     if (!r.taxonKey || !r.vernacularName || isBandingCode(r.vernacularName)) return;
     if (dominantCountry && r.countryCode !== dominantCountry) return;
     const n = r.vernacularName.trim();
+    if (asciiOnly && /[^\x00-\x7F]/.test(n)) return; // skip non-ASCII names for English regions
     if (!nameCounts[r.taxonKey]) nameCounts[r.taxonKey] = {};
     nameCounts[r.taxonKey][n] = (nameCounts[r.taxonKey][n] || 0) + 1;
   });
 
   // 4. Backfill: prefer country-filtered majority vote (reflects local usage), then API name.
+  //    Clear any leftover banding codes that neither source replaced.
   records.forEach(r => {
     if (!r.taxonKey) return;
     const votes = nameCounts[r.taxonKey];
@@ -957,7 +964,8 @@ async function lookupCommonNames(records) {
     }
     const apiResults = commonNameCache[r.taxonKey];
     const apiName = Array.isArray(apiResults) ? pickVernacularName(apiResults, dominantCountry, prefLang) : '';
-    if (apiName) r.vernacularName = apiName;
+    if (apiName) { r.vernacularName = apiName; return; }
+    if (isBandingCode(r.vernacularName)) r.vernacularName = null; // clear unresolved codes
   });
 }
 
@@ -1356,7 +1364,7 @@ function buildChecklist(records) {
     if (!byGroup[g]) byGroup[g] = {};
     if (!byGroup[g][name]) byGroup[g][name] = { count: 0, taxonKey: key, common: '' };
     byGroup[g][name].count++;
-    if (!byGroup[g][name].common && r.vernacularName) byGroup[g][name].common = r.vernacularName;
+    if (!byGroup[g][name].common && r.vernacularName && !isBandingCode(r.vernacularName)) byGroup[g][name].common = r.vernacularName;
     if (!byGroup[g][name].common && r.taxonKey) byGroup[g][name].common = cachedName(r.taxonKey);
   });
   clScroll.innerHTML = '';
