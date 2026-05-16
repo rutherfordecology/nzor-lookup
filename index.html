@@ -582,9 +582,13 @@ const drawControl = new L.Control.Draw({
 }).addTo(map);
 
 map.on(L.Draw.Event.CREATED, e => {
-  const raw = e.layer.getLatLngs();
-  const latlngs = Array.isArray(raw[0]) ? raw[0] : (raw[0].lat !== undefined ? raw : raw[0]);
-  addPolygon(latlngs, 'Drawn polygon ' + (nextPolyId + 1));
+  try {
+    const raw = e.layer.getLatLngs();
+    const latlngs = Array.isArray(raw[0]) ? raw[0] : (raw[0].lat !== undefined ? raw : raw[0]);
+    addPolygon(latlngs, 'Drawn polygon ' + (nextPolyId + 1));
+  } catch (err) {
+    console.error('Polygon handler error:', err);
+  }
 });
 
 // State
@@ -614,6 +618,8 @@ const outputSection  = document.getElementById('outputSection');
 const checklistPanel = document.getElementById('checklistPanel');
 const clSelectedInfo = document.getElementById('clSelectedInfo');
 const clScroll       = document.getElementById('clScroll');
+const qualityBoxEl   = document.getElementById('qualityBox');
+const richnessBoxEl  = document.getElementById('richnessBox');
 
 document.getElementById('dateTo').value = new Date().toISOString().split('T')[0];
 document.getElementById('clSearchInput').addEventListener('input', filterChecklistSearch);
@@ -689,8 +695,8 @@ function clearResults() {
   allRecords = []; activeFilters.clear(); csvData = null; selectedSpecies = null; allMarkers = []; commonNameCache = {};
   metricsGrid.style.display = 'none'; filterSection.style.display = 'none';
   legend.style.display = 'none'; outputSection.style.display = 'none';
-  document.getElementById('qualityBox').style.display = 'none';
-  document.getElementById('richnessBox').style.display = 'none';
+  if (qualityBoxEl)  qualityBoxEl.style.display  = 'none';
+  if (richnessBoxEl) richnessBoxEl.style.display = 'none';
   statusBar.style.display = 'none'; progressWrap.style.display = 'none';
   checklistPanel.classList.remove('open');
   clScroll.innerHTML = ''; clSelectedInfo.style.display = 'none';
