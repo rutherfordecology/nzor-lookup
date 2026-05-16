@@ -850,9 +850,11 @@ document.getElementById('modalProceed').addEventListener('click', () => {
   if (pendingLoad) { addPolygon(pendingLoad.latlngs, pendingLoad.label); pendingLoad = null; }
 });
 
-// Returns true for banding codes / abbreviations (e.g. "COST", "CF") that are not real vernacular names
+// Returns true for banding codes / abbreviations (e.g. "COST", "CF", "C F") that are not real vernacular names
 function isBandingCode(name) {
-  return !!name && /^[A-Z]{1,6}$/.test(name.trim());
+  if (!name) return false;
+  const stripped = name.trim().replace(/\s+/g, ''); // collapse internal spaces e.g. "C F" → "CF"
+  return /^[A-Z]{1,6}$/.test(stripped);
 }
 
 // ISO 3166-1 alpha-2 country → GBIF vernacular name language code (ISO 639-2/3)
@@ -965,7 +967,9 @@ async function lookupCommonNames(records) {
     const apiResults = commonNameCache[r.taxonKey];
     const apiName = Array.isArray(apiResults) ? pickVernacularName(apiResults, dominantCountry, prefLang) : '';
     if (apiName) { r.vernacularName = apiName; return; }
-    if (isBandingCode(r.vernacularName)) r.vernacularName = null; // clear unresolved codes
+    // Clear any name that's still a banding code or (for English regions) non-ASCII
+    const vn = r.vernacularName;
+    if (vn && (isBandingCode(vn) || (asciiOnly && /[^\x00-\x7F]/.test(vn)))) r.vernacularName = null;
   });
 }
 
