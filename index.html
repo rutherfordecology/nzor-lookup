@@ -1305,7 +1305,6 @@ runBtn.addEventListener('click', async () => {
 
   const dateFrom   = document.getElementById('dateFrom').value;
   const dateTo     = document.getElementById('dateTo').value || new Date().toISOString().split('T')[0];
-  const coordOnly  = true;
   const taxonKeys  = getSelectedTaxonKeys();
   const allFetched = [];
 
@@ -1319,7 +1318,6 @@ runBtn.addEventListener('click', async () => {
     const predicates = [
       { type: 'within', geometry: poly.wkt }
     ];
-    if (coordOnly) predicates.push({ type: 'equals', key: 'HAS_COORDINATE', value: 'true' });
     if (dateFrom && dateTo) predicates.push({ type: 'and', predicates: [
       { type: 'greaterThanOrEquals', key: 'YEAR', value: String(new Date(dateFrom).getFullYear()) },
       { type: 'lessThanOrEquals',    key: 'YEAR', value: String(new Date(dateTo).getFullYear()) }
