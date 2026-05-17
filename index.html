@@ -344,7 +344,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
     <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a></h1>
-    <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v1.78</span>
+    <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v1.79</span>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -512,7 +512,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
         <p style="margin:0 0 0.75rem;">Records are grouped by exact coordinate. Each unique location is weighted using a log₂ scale — 1 record → 0.15, 10 records → 0.52, 100 records → 1.0 — so heavily-visited birding hotspots don't oversaturate the map relative to areas with sparser but genuine coverage.</p>
 
         <p style="font-weight:600;color:var(--text);margin:0 0 0.25rem;">Species diversity heatmap</p>
-        <p style="margin:0 0 0.75rem;">The map area is divided into a grid whose cell size adapts to zoom level (from ~11 km at regional scale down to ~55 m at street level). Each cell is weighted by the number of distinct species recorded within it, normalised linearly against the most species-rich cell in your polygon. The highest-diversity cell always shows at full intensity; everything else is relative to it. This means the map reflects diversity within your study area, not against any global benchmark.</p>
+        <p style="margin:0 0 0.75rem;">The map area is divided into a grid whose cell size adapts to zoom level (from ~11 km at regional scale down to ~55 m at street level). Each cell is weighted by the number of distinct species recorded within it, normalised against the most species-rich cell in your polygon using a square-root scale — so a cell at 25% of the maximum diversity shows at 50% intensity rather than 25%. The highest-diversity cell always shows at full intensity; everything else is relative to it. This means the map reflects diversity within your study area, not against any global benchmark.</p>
 
         <p style="font-weight:600;color:var(--text);margin:0 0 0.25rem;">Coordinate precision</p>
         <p style="margin:0 0 0.75rem;">Records with a reported coordinate uncertainty ≥ 1,500 m are shown at reduced opacity. Many museum specimens and older survey records carry uncertainties of several kilometres — they're included but visually distinguished so they don't mislead fine-scale analysis.</p>
