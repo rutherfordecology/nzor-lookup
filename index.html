@@ -2405,6 +2405,18 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
+      <span class="changelog-version-tag">v1.62</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Pacific island fix — Samoa, Tonga, Fiji and other near-antimeridian locations now return and display results correctly</li>
+        <li>Photo gallery — browse multiple iNaturalist photos per species using ‹ › buttons below the image</li>
+        <li>Draw distance labels — segment lengths appear on each side as you draw a polygon, with a live label tracking the current segment</li>
+        <li>Partial results on network error — if a fetch fails mid-way, records already loaded are shown with a warning rather than discarded</li>
+        <li>Automatic fetch retry — transient network errors are retried up to 3 times before failing</li>
+        <li>Common name fix — German compound animal names (e.g. "Bisamratte") were being misclassified as English and are now correctly excluded</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
       <span class="changelog-version-tag">v1.15</span>
       <span class="changelog-date">May 2026</span>
       <ul>
