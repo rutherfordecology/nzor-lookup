@@ -345,7 +345,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
     <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a></h1>
-    <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v1.70</span>
+    <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v1.71</span>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -1844,11 +1844,21 @@ function renderHeatmap(records) {
 
 function diversityCellSize() {
   const z = map.getZoom();
-  if (z <= 8)  return 0.1;
-  if (z <= 11) return 0.05;
-  if (z <= 13) return 0.02;
-  if (z <= 15) return 0.005;
-  return 0.001; // ~110 m
+  if (z <= 8)  return 0.1;     // ~11 km
+  if (z <= 11) return 0.05;    // ~5.5 km
+  if (z <= 13) return 0.01;    // ~1.1 km
+  if (z <= 14) return 0.005;   // ~550 m
+  if (z <= 15) return 0.002;   // ~220 m
+  if (z <= 16) return 0.001;   // ~110 m
+  return 0.0005;               // ~55 m
+}
+
+function diversityHeatRadius() {
+  const z = map.getZoom();
+  if (z <= 11) return { radius: 30, blur: 22 };
+  if (z <= 13) return { radius: 22, blur: 18 };
+  if (z <= 15) return { radius: 16, blur: 13 };
+  return { radius: 12, blur: 10 };
 }
 
 function renderDiversityHeatmap(records) {
@@ -1874,15 +1884,15 @@ function renderDiversityHeatmap(records) {
   });
 
   const values = Object.values(cells);
-  const maxSp = Math.max(...values.map(c => c.species.size), 1);
 
-  // sqrt-normalised weight: gives visual range to low-diversity cells while
-  // keeping the highest-diversity cell at full intensity
+  // Absolute log scale: 1 sp → 0.25, 3 sp → 0.5, 7 sp → 0.75, 15 sp → 1.0
+  // Independent of dataset max so the map reads consistently across areas
   const heatPoints = values.map(c =>
-    [c.lat, c.lng, Math.sqrt(c.species.size / maxSp)]
+    [c.lat, c.lng, Math.min(1, Math.log2(c.species.size + 1) / 4)]
   );
 
-  heatLayer = L.heatLayer(heatPoints, { radius: 35, blur: 28, maxZoom: 17, minOpacity: 0.05 });
+  const { radius, blur } = diversityHeatRadius();
+  heatLayer = L.heatLayer(heatPoints, { radius, blur, maxZoom: 19, minOpacity: 0.04 });
   map.addLayer(heatLayer);
   document.getElementById('mShown').textContent = filtered.length.toLocaleString();
   csvData = buildCSV(filtered);
