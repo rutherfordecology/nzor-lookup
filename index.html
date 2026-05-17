@@ -366,7 +366,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v2.25</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v2.26</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -1340,10 +1340,17 @@ function latlngsToWKT(latlngs) {
   // Close ring
   const first = coords[0], last = coords[coords.length - 1];
   if (first[0] !== last[0] || first[1] !== last[1]) coords.push(first.slice());
-  // Ensure counter-clockwise winding (GBIF / GeoJSON right-hand rule)
+  // Ensure counter-clockwise winding (GBIF / GeoJSON right-hand rule).
+  // IMPORTANT: when the ring has positive-extended longitudes (> 180) GBIF
+  // normalises them back to [−180, 180] before running its own winding check.
+  // That normalisation can flip the apparent orientation, so we must compute
+  // our winding-order test on the same normalised view that GBIF will see.
+  const wCoords = coords.some(c => c[0] > 180)
+    ? coords.map(c => [c[0] > 180 ? c[0] - 360 : c[0], c[1]])
+    : coords;
   let area = 0;
-  for (let i = 0; i < coords.length - 1; i++) {
-    area += (coords[i+1][0] - coords[i][0]) * (coords[i+1][1] + coords[i][1]);
+  for (let i = 0; i < wCoords.length - 1; i++) {
+    area += (wCoords[i+1][0] - wCoords[i][0]) * (wCoords[i+1][1] + wCoords[i][1]);
   }
   if (area > 0) coords.reverse();
   return 'POLYGON((' + coords.map(c => c[0] + ' ' + c[1]).join(',') + '))';
@@ -3031,6 +3038,13 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v2.26</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Fixed antimeridian polygon winding order — GBIF normalises extended longitudes before checking orientation, so the winding check now uses the same normalised view GBIF sees</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v2.25</span>
       <span class="changelog-date">May 2026</span>
