@@ -772,6 +772,11 @@ window.addEventListener('load', () => {
 const polyLayer = L.featureGroup().addTo(map);
 let clusterLayer = null, heatLayer = null;
 
+// Customise Leaflet.draw tooltip strings
+L.drawLocal.draw.handlers.polygon.tooltip.start = 'Click to start drawing.';
+L.drawLocal.draw.handlers.polygon.tooltip.cont  = 'Click to continue drawing.';
+L.drawLocal.draw.handlers.polygon.tooltip.end   = 'Double-click to close drawing.';
+
 const drawControl = new L.Control.Draw({
   edit: { featureGroup: polyLayer, edit: false, remove: false },
   draw: {
