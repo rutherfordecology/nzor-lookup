@@ -345,7 +345,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
     <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a></h1>
-    <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v1.72</span>
+    <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v1.73</span>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -492,6 +492,40 @@ html, body { max-width: 100vw; overflow-x: hidden; }
         <button id="selectAllChipsBtn" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--green);font-family:var(--font-sans);padding:2px 4px;border-radius:3px;font-weight:500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Deselect all</button>
       </div>
       <div class="filter-chips" id="filterChips"></div>
+    </div>
+
+    <div class="sidebar-section" id="nerdsSection" style="border-bottom:none;">
+      <button id="nerdsBtn" style="background:none;border:none;cursor:pointer;font-size:12px;font-weight:600;color:var(--text3);font-family:var(--font-sans);padding:0;display:flex;align-items:center;gap:5px;width:100%;" onclick="document.getElementById('nerdsBody').style.display=document.getElementById('nerdsBody').style.display==='none'?'block':'none';this.querySelector('.nerds-arrow').style.transform=document.getElementById('nerdsBody').style.display==='block'?'rotate(90deg)':'rotate(0deg)'">
+        <span class="nerds-arrow" style="display:inline-block;transition:transform 0.2s;font-size:10px;">&#9658;</span>
+        Notes for nerds
+      </button>
+      <div id="nerdsBody" style="display:none;margin-top:0.75rem;font-size:12px;color:var(--text2);line-height:1.7;">
+
+        <p style="font-weight:600;color:var(--text);margin:0 0 0.25rem;">Data source</p>
+        <p style="margin:0 0 0.75rem;">All occurrence records are fetched live from the <a href="https://techdocs.gbif.org/en/openapi/v1/occurrence" target="_blank" style="color:var(--green-dark);">GBIF Occurrence Search API</a> using a WKT polygon derived from your drawn shape. Nothing is cached server-side — every fetch goes direct to GBIF. Records are capped at 10,000 per fetch.</p>
+
+        <p style="font-weight:600;color:var(--text);margin:0 0 0.25rem;">Coordinate handling</p>
+        <p style="margin:0 0 0.75rem;">Leaflet uses a continuous coordinate system that extends beyond ±180° when the map is panned. Before querying GBIF, polygon vertices are normalised to [−180, 180]. Returned records are then shifted to the nearest world-copy of the current viewport, which is why Pacific islands near the antimeridian (Samoa, Tonga, Fiji) plot correctly regardless of how you've panned the map.</p>
+
+        <p style="font-weight:600;color:var(--text);margin:0 0 0.25rem;">Common names</p>
+        <p style="margin:0 0 0.75rem;">Vernacular names are looked up from GBIF's species API after fetching. The selection algorithm prefers: (1) a name tagged for the record's country, (2) an English name, (3) any available name. German compound animal nouns (e.g. <em>Bisamratte</em>) are excluded from English picks because GBIF regional checklists occasionally tag them with <code>lang:'eng'</code>.</p>
+
+        <p style="font-weight:600;color:var(--text);margin:0 0 0.25rem;">Occurrences heatmap</p>
+        <p style="margin:0 0 0.75rem;">Records are grouped by exact coordinate. Each unique location is weighted using a log₂ scale — 1 record → 0.15, 10 records → 0.52, 100 records → 1.0 — so heavily-visited birding hotspots don't oversaturate the map relative to areas with sparser but genuine coverage.</p>
+
+        <p style="font-weight:600;color:var(--text);margin:0 0 0.25rem;">Species diversity heatmap</p>
+        <p style="margin:0 0 0.75rem;">The map area is divided into a grid whose cell size adapts to zoom level (from ~11 km at regional scale down to ~55 m at street level). Each cell is weighted by the number of distinct species recorded within it, normalised linearly against the most species-rich cell in your polygon. The highest-diversity cell always shows at full intensity; everything else is relative to it. This means the map reflects diversity within your study area, not against any global benchmark.</p>
+
+        <p style="font-weight:600;color:var(--text);margin:0 0 0.25rem;">Coordinate precision</p>
+        <p style="margin:0 0 0.75rem;">Records with a reported coordinate uncertainty ≥ 1,500 m are shown at reduced opacity. Many museum specimens and older survey records carry uncertainties of several kilometres — they're included but visually distinguished so they don't mislead fine-scale analysis.</p>
+
+        <p style="font-weight:600;color:var(--text);margin:0 0 0.25rem;">Taxon classification</p>
+        <p style="margin:0 0 0.75rem;">Records are assigned to groups (Birds, Mammals, Reptiles, etc.) using the <code>class</code> and <code>order</code> fields returned by GBIF. These fields are occasionally absent or inconsistent in the source data, in which case the record falls into "Other".</p>
+
+        <p style="font-weight:600;color:var(--text);margin:0 0 0.25rem;">Species photos</p>
+        <p style="margin:0 0 0.75rem;">Photos are sourced from the <a href="https://www.inaturalist.org/pages/api+reference" target="_blank" style="color:var(--green-dark);">iNaturalist Taxa API</a>. Up to 8 CC-licensed images are fetched per species from iNaturalist's curated <code>taxon_photos</code> list. If none are available, the app falls back to GBIF occurrence media. All-rights-reserved images are excluded.</p>
+
+      </div>
     </div>
 
     <div class="sidebar-footer">
