@@ -366,7 +366,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
     <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a></h1>
-    <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v2.09</span>
+    <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v2.10</span>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -2002,9 +2002,12 @@ window._gbifSelectSpecies = function(pid, spIdx) {
   const photoSlotId = pid + '-photo-' + spIdx;
   const recordRowsInner = sp.records.map(r => {
     const date = r.eventDate ? '<span style="font-size:12px;">' + r.eventDate + '</span>' : '';
-    const link = r.gbifID
-      ? ' <a href="https://www.gbif.org/occurrence/' + r.gbifID + '" target="_blank" rel="noopener" style="color:#2a7a58;font-size:11px;">View on GBIF ↗</a>'
-      : '';
+    const srcLk = sourceLink(r);
+    const link = srcLk
+      ? ' ' + srcLk.replace('font-size:12px', 'font-size:11px')
+      : r.gbifID
+        ? ' <a href="https://www.gbif.org/occurrence/' + r.gbifID + '" target="_blank" rel="noopener" style="color:#2a7a58;font-size:11px;">View on GBIF ↗</a>'
+        : '';
     let camBtn = '';
     if (r.recordPhoto) {
       const photoKey = 'rec-' + (r.gbifID || Math.random().toString(36).slice(2));
@@ -2932,11 +2935,12 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v2.09</span>
+      <span class="changelog-version-tag">v2.10</span>
       <span class="changelog-date">May 2026</span>
       <ul>
-        <li>Source links for eBird records now also handle checklist-based IDs (older records use a different format than modern observation IDs)</li>
-        <li>Direct links to source databases (iNaturalist, eBird, Xeno-canto, museum collections) shown in record popups — GBIF link only shown as fallback when no direct link is available</li>
+        <li>Source links (iNaturalist, eBird, Xeno-canto, museum collections) now appear in the species checklist record rows, not just in map popups</li>
+        <li>eBird checklist-based record IDs (older records) now generate working links to the eBird checklist page</li>
+        <li>Direct source links replace GBIF link where available — GBIF shown as fallback only</li>
         <li>Error messages from GBIF now shown verbatim to help diagnose query issues</li>
         <li>Fixed polygon winding order bug that caused some valid polygons to be rejected by the GBIF API</li>
       </ul>
