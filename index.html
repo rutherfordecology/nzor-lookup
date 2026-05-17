@@ -345,7 +345,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
     <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a></h1>
-    <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v1.71</span>
+    <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v1.72</span>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -1884,11 +1884,12 @@ function renderDiversityHeatmap(records) {
   });
 
   const values = Object.values(cells);
+  const maxSp  = Math.max(...values.map(c => c.species.size), 1);
 
-  // Absolute log scale: 1 sp → 0.25, 3 sp → 0.5, 7 sp → 0.75, 15 sp → 1.0
-  // Independent of dataset max so the map reads consistently across areas
+  // Relative to dataset max: the most diverse cell in the polygon = full
+  // intensity, everything else scales linearly against it
   const heatPoints = values.map(c =>
-    [c.lat, c.lng, Math.min(1, Math.log2(c.species.size + 1) / 4)]
+    [c.lat, c.lng, c.species.size / maxSp]
   );
 
   const { radius, blur } = diversityHeatRadius();
