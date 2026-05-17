@@ -160,6 +160,16 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
 .cl-nztcs-btn { font-size:10px; font-weight:600; font-family:var(--font-sans); background:none; border:0.5px solid var(--border); border-radius:4px; padding:3px 7px; cursor:pointer; color:var(--text3); transition:all 0.12s; white-space:nowrap; }
 .cl-nztcs-btn:hover { border-color:var(--green); color:var(--green); }
 .cl-nztcs-btn.unlocked { color:var(--green-dark); border-color:var(--green-mid); background:var(--green-light); }
+.cl-nztcs-filters { display:flex; flex-wrap:wrap; gap:4px; padding:6px 10px; border-bottom:0.5px solid var(--border); background:var(--surface2); }
+.nztcs-fc { font-size:10px; font-weight:700; font-family:var(--font-sans); padding:2px 7px; border-radius:3px; cursor:pointer; transition:all 0.1s; border:1px solid var(--border2); background:var(--surface); color:var(--text3); white-space:nowrap; }
+.nztcs-fc:hover { color:var(--text); }
+.nztcs-fc.active               { background:var(--green-dark); color:white; border-color:var(--green-dark); }
+.nztcs-fc[data-f="nc"].active  { background:#991b1b; color:white; border-color:#991b1b; }
+.nztcs-fc[data-f="ne"].active  { background:#9a3412; color:white; border-color:#9a3412; }
+.nztcs-fc[data-f="nv"].active  { background:#854d0e; color:white; border-color:#854d0e; }
+.nztcs-fc[data-f="ar"].active  { background:#1e40af; color:white; border-color:#1e40af; }
+.nztcs-fc[data-f="rc"].active  { background:#166534; color:white; border-color:#166534; }
+.nztcs-fc[data-f="ex"].active  { background:#475569; color:white; border-color:#475569; }
 
 .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 9999; align-items: center; justify-content: center; }
 .modal-overlay.open { display: flex; }
@@ -355,7 +365,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
     <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a></h1>
-    <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v1.95</span>
+    <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v1.96</span>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -537,6 +547,15 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       </div>
       <div class="cl-search">
         <input type="text" id="clSearchInput" placeholder="Search species...">
+      </div>
+      <div class="cl-nztcs-filters" id="clNztcsFilters" style="display:none;">
+        <button class="nztcs-fc active" data-f="all">All</button>
+        <button class="nztcs-fc" data-f="nc">NC</button>
+        <button class="nztcs-fc" data-f="ne">NE</button>
+        <button class="nztcs-fc" data-f="nv">NV</button>
+        <button class="nztcs-fc" data-f="ar">At Risk</button>
+        <button class="nztcs-fc" data-f="rc">Recovering</button>
+        <button class="nztcs-fc" data-f="ex">Extinct</button>
       </div>
       <div class="cl-scroll" id="clScroll"></div>
     </div>
@@ -926,6 +945,7 @@ map.on(L.Draw.Event.CREATED, e => {
 // State
 let polygons = [], allRecords = [], activeFilters = new Set();
 let viewMode = 'points', selectedSpecies = null, nextPolyId = 0, csvData = null, pendingLoad = null;
+let currentNztcsFilter = 'all';
 let allMarkers = [];
 let commonNameCache = {}; // taxonKey → Array of { vernacularName, language, country } from GBIF species API
 
@@ -1120,6 +1140,8 @@ function passesFilters(r) {
 
 function clearResults() {
   allRecords = []; activeFilters.clear(); csvData = null; selectedSpecies = null; allMarkers = []; commonNameCache = {};
+  currentNztcsFilter = 'all';
+  document.querySelectorAll('.nztcs-fc').forEach(b => b.classList.toggle('active', b.dataset.f === 'all'));
   metricsGrid.style.display = 'none'; filterSection.style.display = 'none';
   legend.style.display = 'none'; outputSection.style.display = 'none';
   if (qualityBoxEl)  qualityBoxEl.style.display  = 'none';
@@ -1294,6 +1316,14 @@ const NZTCS_STATUS_CFG = {
   'Introduced and Naturalised': { cls:'oi', label:'I&N' },
   'Vagrant':                    { cls:'oi', label:'Va'  },
 };
+const NZTCS_FILTER_GROUPS = {
+  'nc':  ['Nationally Critical'],
+  'ne':  ['Nationally Endangered'],
+  'nv':  ['Nationally Vulnerable'],
+  'ar':  ['Declining', 'Naturally Uncommon', 'Relict', 'Gradual Decline', 'Serious Decline', 'Uncommon'],
+  'rc':  ['Recovering', 'Nationally Increasing'],
+  'ex':  ['Extinct'],
+};
 
 function nztcsNormKey(s) {
   if (!s) return null;
@@ -1344,12 +1374,41 @@ function updateNztcsBtn() {
     btn.textContent = '✅ NZTCS';
     btn.classList.add('unlocked');
     btn.title = 'NZTCS conservation status active';
+    document.getElementById('clNztcsFilters').style.display = 'flex';
   } else {
     btn.textContent = '🔒 NZTCS';
     btn.classList.remove('unlocked');
     btn.title = 'Unlock NZTCS conservation status';
+    document.getElementById('clNztcsFilters').style.display = 'none';
   }
 }
+
+function updateNztcsChipCounts() {
+  const counts = { all: 0, nc: 0, ne: 0, nv: 0, ar: 0, rc: 0, ex: 0 };
+  document.querySelectorAll('#clScroll .cl-row').forEach(row => {
+    counts.all++;
+    const status = row.dataset.nztcs;
+    if (status) {
+      for (const [key, statuses] of Object.entries(NZTCS_FILTER_GROUPS)) {
+        if (statuses.includes(status)) { counts[key]++; break; }
+      }
+    }
+  });
+  document.querySelectorAll('.nztcs-fc[data-f]').forEach(btn => {
+    const f = btn.dataset.f;
+    if (!btn.dataset.baseLabel) btn.dataset.baseLabel = btn.textContent.replace(/\s*\(\d+\)$/, '');
+    const c = counts[f] !== undefined ? counts[f] : 0;
+    btn.textContent = (f !== 'all' && c > 0) ? btn.dataset.baseLabel + ' (' + c + ')' : btn.dataset.baseLabel;
+  });
+}
+
+document.getElementById('clNztcsFilters').addEventListener('click', e => {
+  const btn = e.target.closest('.nztcs-fc');
+  if (!btn) return;
+  currentNztcsFilter = btn.dataset.f;
+  document.querySelectorAll('.nztcs-fc').forEach(b => b.classList.toggle('active', b === btn));
+  filterChecklistSearch();
+});
 
 async function loadNztcsData() {
   try {
@@ -2136,12 +2195,18 @@ function filterChecklistSearch() {
   const q = document.getElementById('clSearchInput').value.toLowerCase();
   document.querySelectorAll('.cl-row').forEach(row => {
     const text = (row.dataset.species + ' ' + (row.dataset.common || '')).toLowerCase();
-    row.classList.toggle('hidden', q.length > 0 && !text.includes(q));
+    const matchSearch = !q || text.includes(q);
+    let matchNztcs = true;
+    if (currentNztcsFilter !== 'all') {
+      const allowed = NZTCS_FILTER_GROUPS[currentNztcsFilter] || [];
+      matchNztcs = allowed.includes(row.dataset.nztcs || '');
+    }
+    row.classList.toggle('hidden', !matchSearch || !matchNztcs);
   });
   document.querySelectorAll('.cl-group-header').forEach(header => {
     let hasVisible = false, el = header.nextElementSibling;
     while (el && !el.classList.contains('cl-group-header')) {
-      if (!el.classList.contains('hidden')) hasVisible = true;
+      if (!el.classList.contains('hidden') && el.style.display !== 'none') hasVisible = true;
       el = el.nextElementSibling;
     }
     header.style.display = hasVisible ? '' : 'none';
@@ -2186,7 +2251,9 @@ function buildChecklist(records) {
       const row = document.createElement('div'); row.className = 'cl-row';
       row.dataset.species = name;
       row.dataset.common  = info.common;
-      const badge = nztcsBadgeHtml(lookupNztcs(info.record));
+      const nztcsEntry = lookupNztcs(info.record);
+      const badge = nztcsBadgeHtml(nztcsEntry);
+      row.dataset.nztcs = nztcsEntry ? (nztcsEntry.status || '') : '';
       row.innerHTML =
         '<div class="cl-row-top"><span class="cl-name">' + name + badge + '</span><span class="cl-count">' + info.count + '</span></div>' +
         (info.common ? '<div class="cl-common">' + info.common + '</div>' : '');
@@ -2197,6 +2264,10 @@ function buildChecklist(records) {
       clScroll.appendChild(row);
     });
   });
+  if (nztcsUnlocked) {
+    updateNztcsChipCounts();
+    if (currentNztcsFilter !== 'all') filterChecklistSearch();
+  }
 }
 
 // Filter chips
