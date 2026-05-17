@@ -171,6 +171,47 @@ for binomial, entries in binomial_candidates.items():
     subsp_added += 1
 
 print(f"  Subspecies binomial aliases added: {subsp_added}")
+
+# ── Old-name binomial aliases ──────────────────────────────────────────────
+# Many NZ taxa were reclassified to a new genus (e.g. Porzana → Zapornia).
+# The Previous Name field captures the old name, e.g. "Porzana tabuensis tabuensis
+# Gmelin, 1789". The alias dict maps the normalised old name (including authority)
+# to the canonical current key — but GBIF still records the old binomial
+# "Porzana tabuensis" which is never in the lookup.
+#
+# Fix: for every alias key whose first two tokens form a binomial not yet in the
+# lookup, add that binomial pointing to the same entry.
+
+def looks_like_latin_binomial_prefix(key):
+    """True if the key starts with two lowercase alphabetic words (Latin binomial)."""
+    parts = key.split()
+    if len(parts) < 2:
+        return False
+    return bool(re.match(r'^[a-z][a-z\-]+$', parts[0]) and re.match(r'^[a-z][a-z\-]+$', parts[1]))
+
+old_binomial_added = 0
+# aliases still maps alias_key → canonical_key (before merging into lookup)
+# But we already merged them into lookup above. Re-derive from lookup keys that
+# aren't in the original lookup (i.e. came from aliases) — simpler: iterate
+# all existing lookup keys and generate binomials for any that look like old names.
+
+# Collect all lookup keys that look like "genus species subsp authority..."
+# (4+ tokens) and generate binomial aliases from them.
+for key in list(lookup.keys()):
+    parts = key.split()
+    # Must have at least 3 tokens and start with two lowercase alpha words
+    if len(parts) < 3:
+        continue
+    if not looks_like_latin_binomial_prefix(key):
+        continue
+    binomial = parts[0] + ' ' + parts[1]
+    if binomial in lookup:
+        continue
+    # Add binomial alias pointing to this entry
+    lookup[binomial] = lookup[key]
+    old_binomial_added += 1
+
+print(f"  Old-name binomial aliases added: {old_binomial_added}")
 print(f"  Total lookup entries: {len(lookup)}")
 
 # Status summary
