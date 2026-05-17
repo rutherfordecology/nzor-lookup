@@ -366,7 +366,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v2.20</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v2.21</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -542,6 +542,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       </div>
     </div>
     <div id="drawActionBar">
+      <button id="finishDrawBtn">&#x2713; Finish</button>
       <button id="undoPointBtn">&#x21A9; Undo point</button>
       <button id="cancelDrawBtn">&#x2715; Cancel</button>
     </div>
@@ -780,6 +781,7 @@ const drawControl = new L.Control.Draw({
 }).addTo(map);
 
 const drawActionBar = document.getElementById('drawActionBar');
+const finishDrawBtn = document.getElementById('finishDrawBtn');
 const undoPointBtn  = document.getElementById('undoPointBtn');
 const cancelDrawBtn = document.getElementById('cancelDrawBtn');
 let activeDrawHandler = null;
@@ -864,7 +866,12 @@ map.on('mousemove', function(e) {
   }
 });
 
-let _lastUndo = 0, _lastCancel = 0;
+let _lastFinish = 0, _lastUndo = 0, _lastCancel = 0;
+function onFinishDraw(e) {
+  e.preventDefault(); e.stopPropagation();
+  const now = Date.now(); if (now - _lastFinish < 400) return; _lastFinish = now;
+  if (activeDrawHandler && activeDrawHandler.completeShape) activeDrawHandler.completeShape();
+}
 function onUndoPoint(e) {
   e.preventDefault(); e.stopPropagation();
   const now = Date.now(); if (now - _lastUndo < 400) return; _lastUndo = now;
@@ -875,6 +882,9 @@ function onCancelDraw(e) {
   const now = Date.now(); if (now - _lastCancel < 400) return; _lastCancel = now;
   if (activeDrawHandler && activeDrawHandler.disable) activeDrawHandler.disable();
 }
+finishDrawBtn.addEventListener('pointerdown', onFinishDraw);
+finishDrawBtn.addEventListener('touchstart', onFinishDraw, { passive: false });
+finishDrawBtn.addEventListener('click', onFinishDraw);
 undoPointBtn.addEventListener('pointerdown', onUndoPoint);
 undoPointBtn.addEventListener('touchstart', onUndoPoint, { passive: false });
 undoPointBtn.addEventListener('click', onUndoPoint);
@@ -2968,7 +2978,7 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v2.20</span>
+      <span class="changelog-version-tag">v2.21</span>
       <span class="changelog-date">May 2026</span>
       <ul>
         <li>Source links (iNaturalist, eBird, Xeno-canto, museum collections) now appear in the species checklist record rows, not just in map popups</li>
