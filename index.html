@@ -340,7 +340,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
     <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a></h1>
-    <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v1.59</span>
+    <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v1.60</span>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -1333,7 +1333,9 @@ async function lookupCommonNames(records) {
 }
 
 // CC photo cache: taxonKey → { url, licence, photographer } or null
-const photoCache = {};
+const photoCache     = {};
+const photoListCache = {}; // taxonKey -> [{url,licence,photographer}, ...]
+const _photoSlots    = {}; // slotId   -> {photos:[...], idx:0}
 
 // sciName → iNat taxon result cache (keyed by taxonKey)
 const inatPhotoCache = {};
@@ -1359,13 +1361,14 @@ async function fetchSpeciesPhoto(taxonKey, sciName) {
         for (const tp of (taxon && taxon.taxon_photos) || []) {
           if (tp && tp.photo) candidates.push(tp.photo);
         }
-        const photo = candidates.find(p => p.medium_url && p.license_code);
-        if (photo) {
-          photoCache[taxonKey] = {
-            url: photo.medium_url,
-            licence: photo.license_code || '',
-            photographer: photo.attribution || ''
-          };
+        const seenUrls = new Set();
+        const allPhotos = candidates
+          .filter(p => p.medium_url && p.license_code && !seenUrls.has(p.medium_url) && seenUrls.add(p.medium_url))
+          .slice(0, 8)
+          .map(p => ({ url: p.medium_url, licence: p.license_code || '', photographer: p.attribution || '' }));
+        if (allPhotos.length) {
+          photoListCache[taxonKey] = allPhotos;
+          photoCache[taxonKey] = allPhotos[0];
           return photoCache[taxonKey];
         }
       }
@@ -1378,6 +1381,7 @@ async function fetchSpeciesPhoto(taxonKey, sciName) {
     'https://api.gbif.org/v1/occurrence/search?taxonKey=' + taxonKey + '&mediaType=StillImage&datasetKey=' + inatKey + '&limit=5',
     'https://api.gbif.org/v1/occurrence/search?taxonKey=' + taxonKey + '&mediaType=StillImage&limit=15'
   ];
+  const gbifPhotos = []; const gbifSeen = new Set();
   for (const url of attempts) {
     try {
       const res = await fetch(url);
@@ -1386,13 +1390,19 @@ async function fetchSpeciesPhoto(taxonKey, sciName) {
       for (const occ of (json.results || [])) {
         // Skip unlicensed (All Rights Reserved) media
         const img = (occ.media || []).find(m => m.type === 'StillImage' && m.identifier && m.license);
-        if (img) {
-          photoCache[taxonKey] = { url: img.identifier, licence: img.license || '', photographer: img.rightsHolder || img.creator || '' };
-          return photoCache[taxonKey];
+        if (img && !gbifSeen.has(img.identifier)) {
+          gbifSeen.add(img.identifier);
+          gbifPhotos.push({ url: img.identifier, licence: img.license || '', photographer: img.rightsHolder || img.creator || '' });
+          if (gbifPhotos.length >= 5) break;
         }
       }
     } catch(e) {}
-    if (photoCache[taxonKey]) return photoCache[taxonKey];
+    if (gbifPhotos.length) break; // iNat dataset gave us photos; skip broader search
+  }
+  if (gbifPhotos.length) {
+    photoListCache[taxonKey] = gbifPhotos;
+    photoCache[taxonKey] = gbifPhotos[0];
+    return photoCache[taxonKey];
   }
   return null;
 }
@@ -1460,6 +1470,44 @@ function buildRecordPage(rec) {
   };
 }
 
+function renderPhotoSlot(slotId, idx) {
+  const slot = document.getElementById(slotId);
+  const data = _photoSlots[slotId];
+  if (!slot || !data) return;
+  const photo = data.photos[idx];
+  const total = data.photos.length;
+  const imgH  = window.innerWidth < 768 ? '130px' : '160px';
+  const sciName = slot.dataset.sciName || '';
+
+  const navHtml = total > 1
+    ? '<div style="position:absolute;bottom:22px;left:0;right:0;display:flex;align-items:center;justify-content:center;gap:5px;pointer-events:none;">' +
+      '<button onclick="window._gbifNavSpeciesPhoto(\'' + slotId + '\',-1)" ' +
+        'style="pointer-events:all;background:rgba(0,0,0,0.55);color:#fff;border:none;border-radius:50%;width:24px;height:24px;font-size:18px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0 0 1px 0;">&#8249;</button>' +
+      '<span style="color:#fff;font-size:10px;font-weight:600;background:rgba(0,0,0,0.45);padding:1px 6px;border-radius:8px;">' + (idx + 1) + '\u00a0/\u00a0' + total + '</span>' +
+      '<button onclick="window._gbifNavSpeciesPhoto(\'' + slotId + '\',1)" ' +
+        'style="pointer-events:all;background:rgba(0,0,0,0.55);color:#fff;border:none;border-radius:50%;width:24px;height:24px;font-size:18px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0 0 1px 0;">&#8250;</button>' +
+      '</div>'
+    : '';
+
+  slot.innerHTML =
+    '<div style="position:relative;">' +
+      '<img src="' + photo.url + '" alt="' + sciName + '" ' +
+        'style="width:100%;height:' + imgH + ';object-fit:cover;border-radius:4px;display:block;" ' +
+        'onload="if(this.naturalHeight>this.naturalWidth){this.style.width=\'auto\';this.style.maxWidth=\'100%\';this.style.objectFit=\'contain\';this.style.margin=\'0 auto\';}" ' +
+        'onerror="this.parentElement.parentElement.innerHTML=\'\'">' +
+      navHtml +
+    '</div>' +
+    '<div style="font-size:9px;color:#9b9890;margin-top:2px;line-height:1.3;">' +
+    licenceBadge(photo.licence) + (photo.photographer || '') + '</div>';
+}
+
+window._gbifNavSpeciesPhoto = function(slotId, dir) {
+  const data = _photoSlots[slotId];
+  if (!data) return;
+  data.idx = (data.idx + dir + data.photos.length) % data.photos.length;
+  renderPhotoSlot(slotId, data.idx);
+};
+
 async function loadPopupPhoto(photoId, taxonKey, sciName) {
   const slot = document.getElementById(photoId);
   if (!slot || slot.dataset.loaded) return;
@@ -1468,14 +1516,10 @@ async function loadPopupPhoto(photoId, taxonKey, sciName) {
   const photo = await fetchSpeciesPhoto(taxonKey, sciName);
   if (!slot.isConnected) return;
   if (photo) {
-    const imgH = window.innerWidth < 768 ? '130px' : '260px';
-    slot.innerHTML =
-      '<img src="' + photo.url + '" alt="' + (sciName || '') + '" ' +
-      'style="width:100%;height:' + imgH + ';object-fit:cover;border-radius:4px;display:block;" ' +
-      'onload="if(this.naturalHeight>this.naturalWidth){this.style.width=\'auto\';this.style.maxWidth=\'100%\';this.style.objectFit=\'contain\';this.style.margin=\'0 auto\';}" ' +
-      'onerror="this.parentElement.innerHTML=\'\'"> ' +
-      '<div style="font-size:9px;color:#9b9890;margin-top:2px;line-height:1.3;">' +
-      licenceBadge(photo.licence) + (photo.photographer || '') + '</div>';
+    const photos = (photoListCache[taxonKey] && photoListCache[taxonKey].length)
+      ? photoListCache[taxonKey] : [photo];
+    _photoSlots[photoId] = { photos, idx: 0 };
+    renderPhotoSlot(photoId, 0);
   } else {
     slot.innerHTML = '';
   }
