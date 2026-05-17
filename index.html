@@ -366,7 +366,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v2.22</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v2.23</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -1930,9 +1930,13 @@ function sourceLink(rec) {
   if (/xeno-canto/i.test(id))                               return lnk('Xeno-canto', id);
   // eBird URNs — login required, skip
   if (/URN:catalog:CLO:EBIRD/i.test(id)) return '';
+  // NHM London — UUID occurrenceID, no references field; detect by datasetKey or institutionCode
+  const isNHM = rec.datasetKey === '7e380070-f762-11e1-a439-00145eb45e9a' || rec.institutionCode === 'NHMUK';
+  if (isNHM && /^[0-9a-f-]{36}$/i.test(id))
+    return lnk('NHM London', 'https://data.nhm.ac.uk/object/' + id);
   // Any other direct URL (museum collections, herbaria, etc.)
   if (/^https?:\/\//i.test(id)) return lnk('Source record', id);
-  // references field used by Te Papa, NHM, Smithsonian, etc.
+  // references field used by Te Papa, Smithsonian, etc.
   const ref = (rec.references || '').trim();
   if (/xeno-canto/i.test(ref))   return lnk('Xeno-canto', ref);
   if (/^https?:\/\//i.test(ref)) return lnk('Source record', ref);
@@ -2726,12 +2730,14 @@ runBtn.addEventListener('click', async () => {
             taxonKey:                      r.taxonKey  || null,
             speciesKey:                    r.speciesKey || null,
             datasetName:                   r.datasetName   || null,
+            datasetKey:                    r.datasetKey    || null,
+            institutionCode:               r.institutionCode || null,
             country:                       r.country       || null,
             countryCode:                   r.countryCode   || null,
             stateProvince:                 r.stateProvince || null,
             locality:                      r.locality      || null,
             recordedBy:                    Array.isArray(r.recordedBy) ? r.recordedBy.join('; ') : (r.recordedBy || null),
-            recordPhoto: (() => { const img = (r.media || []).find(m => m.type === 'StillImage' && m.identifier); return img ? { url: img.identifier, licence: img.license || '', photographer: img.rightsHolder || img.creator || '' } : null; })(),
+            recordPhoto: (() => { const img = (r.media || []).find(m => m.type === 'StillImage' && m.identifier && !/image\/tiff/i.test(m.format || '') && !/\.tiff?$/i.test(m.identifier)); return img ? { url: img.identifier, licence: img.license || '', photographer: img.rightsHolder || img.creator || '' } : null; })(),
             _polyId:    poly.id,
             _polyLabel: poly.label
           });
@@ -3012,7 +3018,7 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v2.22</span>
+      <span class="changelog-version-tag">v2.23</span>
       <span class="changelog-date">May 2026</span>
       <ul>
         <li>Source links (iNaturalist, eBird, Xeno-canto, museum collections) now appear in the species checklist record rows, not just in map popups</li>
