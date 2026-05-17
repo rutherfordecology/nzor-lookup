@@ -366,7 +366,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
     <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a></h1>
-    <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v2.13</span>
+    <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v2.14</span>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -1831,23 +1831,21 @@ function getDisplayName(rec) {
   return common || rec.scientificName || rec.species || 'Unknown';
 }
 
-// Returns an HTML link to the source database based on occurrenceID
+// Returns an extra source link (iNat, XC, museum) if one is available.
+// eBird requires login — no eBird links. GBIF is always shown separately.
 function sourceLink(rec) {
-  const id = (rec.occurrenceID || '').trim();
-  if (!id) return '';
-  // Named sources with recognisable URLs or URNs
-  if (/^https?:\/\/(www\.)?inaturalist\.org\//i.test(id))
-    return '<a href="' + id + '" target="_blank" rel="noopener" style="color:#2a7a58;font-size:12px;">View on iNaturalist ↗</a>';
-  if (/^https?:\/\/(www\.)?xeno-canto\.org\//i.test(id))
-    return '<a href="' + id + '" target="_blank" rel="noopener" style="color:#2a7a58;font-size:12px;">View on Xeno-canto ↗</a>';
-  // eBird records require login to view directly — GBIF is the best public link for these
-  // Any other URL — link generically (covers Te Papa, NHM, Smithsonian, herbaria, etc.)
-  if (/^https?:\/\//i.test(id))
-    return '<a href="' + id + '" target="_blank" rel="noopener" style="color:#2a7a58;font-size:12px;">View source record ↗</a>';
-  // Fall back to the references field (used by many museum collections)
+  const lnk = (label, url) =>
+    '<a href="' + url + '" target="_blank" rel="noopener" style="color:#2a7a58;font-size:12px;">' + label + ' ↗</a>';
+  const id  = (rec.occurrenceID || '').trim();
+  if (/^https?:\/\/(www\.)?inaturalist\.org\//i.test(id))  return lnk('iNaturalist', id);
+  if (/^https?:\/\/(www\.)?xeno-canto\.org\//i.test(id))   return lnk('Xeno-canto', id);
+  // eBird URNs — login required, skip
+  if (/URN:catalog:CLO:EBIRD/i.test(id)) return '';
+  // Any other direct URL (museum collections, herbaria, etc.)
+  if (/^https?:\/\//i.test(id)) return lnk('Source record', id);
+  // references field used by Te Papa, NHM, Smithsonian, etc.
   const ref = (rec.references || '').trim();
-  if (/^https?:\/\//i.test(ref))
-    return '<a href="' + ref + '" target="_blank" rel="noopener" style="color:#2a7a58;font-size:12px;">View source record ↗</a>';
+  if (/^https?:\/\//i.test(ref)) return lnk('Source record', ref);
   return '';
 }
 
@@ -1874,11 +1872,8 @@ function buildRecordPage(rec) {
     : '';
   const srcLink = sourceLink(rec);
   const linkItems = [];
-  if (srcLink) {
-    linkItems.push(srcLink);
-  } else if (gbifId) {
-    linkItems.push('<a href="https://www.gbif.org/occurrence/' + gbifId + '" target="_blank" rel="noopener" style="color:#2a7a58;font-size:12px;">View on GBIF \u2197</a>');
-  }
+  if (gbifId) linkItems.push('<a href="https://www.gbif.org/occurrence/' + gbifId + '" target="_blank" rel="noopener" style="color:#2a7a58;font-size:12px;">GBIF \u2197</a>');
+  if (srcLink) linkItems.push(srcLink);
   const link = (linkItems.length || camBtn)
     ? '<div style="margin-top:4px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' + linkItems.join('') + camBtn + '</div>'
     : '';
@@ -1995,12 +1990,9 @@ window._gbifSelectSpecies = function(pid, spIdx) {
   const photoSlotId = pid + '-photo-' + spIdx;
   const recordRowsInner = sp.records.map(r => {
     const date = r.eventDate ? '<span style="font-size:12px;">' + r.eventDate + '</span>' : '';
-    const srcLk = sourceLink(r);
-    const link = srcLk
-      ? ' ' + srcLk.replace('font-size:12px', 'font-size:11px')
-      : r.gbifID
-        ? ' <a href="https://www.gbif.org/occurrence/' + r.gbifID + '" target="_blank" rel="noopener" style="color:#2a7a58;font-size:11px;">View on GBIF ↗</a>'
-        : '';
+    const srcLk = sourceLink(r).replace('font-size:12px', 'font-size:11px');
+    const gbifLk = r.gbifID ? ' <a href="https://www.gbif.org/occurrence/' + r.gbifID + '" target="_blank" rel="noopener" style="color:#2a7a58;font-size:11px;">GBIF ↗</a>' : '';
+    const link = gbifLk + (srcLk ? ' ' + srcLk : '');
     let camBtn = '';
     if (r.recordPhoto) {
       const photoKey = 'rec-' + (r.gbifID || Math.random().toString(36).slice(2));
@@ -2928,7 +2920,7 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
   </div>
   <div class="changelog-scroll" id="changelogScroll">
     <div class="changelog-version">
-      <span class="changelog-version-tag">v2.13</span>
+      <span class="changelog-version-tag">v2.14</span>
       <span class="changelog-date">May 2026</span>
       <ul>
         <li>Source links (iNaturalist, eBird, Xeno-canto, museum collections) now appear in the species checklist record rows, not just in map popups</li>
