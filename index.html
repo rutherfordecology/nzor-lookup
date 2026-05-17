@@ -149,6 +149,17 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
 .cl-name { font-style: italic; color: var(--text); flex: 1; }
 .cl-count { color: var(--text3); font-size: 11px; flex-shrink: 0; margin-left: 8px; }
 .cl-common { font-size: 11px; color: var(--text2); margin-top: 1px; }
+.nztcs-badge { display:inline-block; font-size:9px; font-weight:700; letter-spacing:0.03em; padding:1px 4px; border-radius:3px; vertical-align:middle; margin-left:5px; flex-shrink:0; white-space:nowrap; }
+.nb-nc { background:#fee2e2; color:#991b1b; border:0.5px solid #fca5a5; }
+.nb-ne { background:#ffedd5; color:#9a3412; border:0.5px solid #fdba74; }
+.nb-nv { background:#fef9c3; color:#854d0e; border:0.5px solid #fde047; }
+.nb-ar { background:#dbeafe; color:#1e40af; border:0.5px solid #93c5fd; }
+.nb-ex { background:#f1f5f9; color:#475569; border:0.5px solid #cbd5e1; }
+.nb-rc { background:#dcfce7; color:#166534; border:0.5px solid #86efac; }
+.nb-oi { background:#f3f4f6; color:#6b7280; border:0.5px solid #d1d5db; }
+.cl-nztcs-btn { font-size:10px; font-weight:600; font-family:var(--font-sans); background:none; border:0.5px solid var(--border); border-radius:4px; padding:3px 7px; cursor:pointer; color:var(--text3); transition:all 0.12s; white-space:nowrap; }
+.cl-nztcs-btn:hover { border-color:var(--green); color:var(--green); }
+.cl-nztcs-btn.unlocked { color:var(--green-dark); border-color:var(--green-mid); background:var(--green-light); }
 
 .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 9999; align-items: center; justify-content: center; }
 .modal-overlay.open { display: flex; }
@@ -344,7 +355,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
     <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a></h1>
-    <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v1.94</span>
+    <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v1.95</span>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -515,7 +526,10 @@ html, body { max-width: 100vw; overflow-x: hidden; }
     <div class="checklist-panel" id="checklistPanel">
       <div class="cl-header">
         <span class="cl-title">Species checklist</span>
-        <button class="cl-close" id="clCloseBtn">&#x2715;</button>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <button class="cl-nztcs-btn" id="clNztcsBtn" title="Unlock NZTCS conservation status">🔒 NZTCS</button>
+          <button class="cl-close" id="clCloseBtn">&#x2715;</button>
+        </div>
       </div>
       <div class="cl-selected-info" id="clSelectedInfo">
         Highlighting: <span id="clSelectedName"></span>
@@ -611,6 +625,22 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <p style="font-weight:600;color:var(--text);margin:0 0 0.25rem;">Species photos</p>
       <p style="margin:0 0 0;">Photos are sourced from the <a href="https://www.inaturalist.org/pages/api+reference" target="_blank" style="color:var(--green-dark);">iNaturalist Taxa API</a>. Up to 8 CC-licensed images are fetched per species from iNaturalist's curated <code>taxon_photos</code> list. If none are available, the app falls back to GBIF occurrence media. All-rights-reserved images are excluded.</p>
 
+    </div>
+  </div>
+</div>
+
+<!-- NZTCS unlock modal -->
+<div class="modal-overlay" id="nztcsModal">
+  <div class="modal" style="max-width:360px;">
+    <h2 style="margin-bottom:0.5rem;">🔒 NZTCS status</h2>
+    <p>Enter your access code to unlock NZ Threat Classification System conservation status badges in the species checklist.</p>
+    <div class="field" style="margin-bottom:0.5rem;">
+      <input type="password" id="nztcsPasswordInput" placeholder="Access code" autocomplete="off">
+    </div>
+    <div id="nztcsError" style="font-size:12px;color:var(--red);margin-bottom:0.6rem;display:none;">Incorrect access code.</div>
+    <div class="modal-btns">
+      <button class="modal-btn" id="nztcsCancelBtn">Cancel</button>
+      <button class="modal-btn primary" id="nztcsUnlockBtn">Unlock</button>
     </div>
   </div>
 </div>
@@ -1234,12 +1264,135 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     document.getElementById('nerdsModal').classList.remove('open');
     document.getElementById('aboutModal').classList.remove('open');
+    document.getElementById('nztcsModal').classList.remove('open');
   }
 });
 
 document.getElementById('disclaimerAccept').addEventListener('click', () => {
   document.getElementById('disclaimerModal').classList.remove('open');
 });
+
+// ── NZTCS conservation status ──────────────────────────────────────────────
+const NZTCS_HASH   = '3057b09c2d2673d82c6b7a64abff327c0b0c3b0380ee6f9e2ee1a68c7eb1499a';
+const NZTCS_LS_KEY = 'nztcs_unlocked';
+let nztcsData     = null;
+let nztcsUnlocked = false;
+
+const NZTCS_STATUS_CFG = {
+  'Nationally Critical':        { cls:'nc', label:'NC'  },
+  'Nationally Endangered':      { cls:'ne', label:'NE'  },
+  'Nationally Vulnerable':      { cls:'nv', label:'NV'  },
+  'Declining':                  { cls:'ar', label:'De'  },
+  'Naturally Uncommon':         { cls:'ar', label:'NU'  },
+  'Relict':                     { cls:'ar', label:'Re'  },
+  'Gradual Decline':            { cls:'ar', label:'GD'  },
+  'Serious Decline':            { cls:'ar', label:'SD'  },
+  'Uncommon':                   { cls:'ar', label:'Un'  },
+  'Extinct':                    { cls:'ex', label:'Ex'  },
+  'Recovering':                 { cls:'rc', label:'Rc'  },
+  'Nationally Increasing':      { cls:'rc', label:'NI'  },
+  'Introduced and Naturalised': { cls:'oi', label:'I&N' },
+  'Vagrant':                    { cls:'oi', label:'Va'  },
+};
+
+function nztcsNormKey(s) {
+  if (!s) return null;
+  return s.toLowerCase().replace(/^["'\s]+|["'\s]+$/g, '').replace(/\s+/g, ' ');
+}
+
+function lookupNztcs(rec) {
+  if (!nztcsData || !rec) return null;
+  const candidates = [
+    rec.species,
+    (rec.genus && rec.specificEpithet) ? rec.genus + ' ' + rec.specificEpithet : null,
+    rec.scientificName,
+  ].filter(Boolean);
+  for (const name of candidates) {
+    const k = nztcsNormKey(name);
+    if (k && nztcsData[k]) return nztcsData[k];
+    if (name) {
+      const parts = name.trim().split(/\s+/);
+      if (parts.length >= 2) {
+        const bin = (parts[0] + ' ' + parts[1]).toLowerCase();
+        if (nztcsData[bin]) return nztcsData[bin];
+      }
+    }
+  }
+  return null;
+}
+
+function nztcsBadgeHtml(entry) {
+  if (!entry) return '';
+  const cfg = NZTCS_STATUS_CFG[entry.status];
+  if (!cfg) return '';
+  const yr     = entry.year   ? ` (${entry.year})`  : '';
+  const common = entry.common ? ` · ${entry.common}` : '';
+  const maori  = entry.maori  ? ` · ${entry.maori}`  : '';
+  const tip    = `${entry.status}${yr}${common}${maori}`.replace(/"/g, '&quot;');
+  return `<span class="nztcs-badge nb-${cfg.cls}" title="${tip}">${cfg.label}</span>`;
+}
+
+async function hashPassword(pw) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+function updateNztcsBtn() {
+  const btn = document.getElementById('clNztcsBtn');
+  if (!btn) return;
+  if (nztcsUnlocked) {
+    btn.textContent = '✅ NZTCS';
+    btn.classList.add('unlocked');
+    btn.title = 'NZTCS conservation status active';
+  } else {
+    btn.textContent = '🔒 NZTCS';
+    btn.classList.remove('unlocked');
+    btn.title = 'Unlock NZTCS conservation status';
+  }
+}
+
+async function loadNztcsData() {
+  try {
+    const resp = await fetch('nztcs.json');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    nztcsData     = await resp.json();
+    nztcsUnlocked = true;
+    localStorage.setItem(NZTCS_LS_KEY, '1');
+    updateNztcsBtn();
+    if (allRecords.length > 0) buildChecklist(allRecords);
+  } catch(err) {
+    console.warn('NZTCS load failed:', err);
+  }
+}
+
+document.getElementById('clNztcsBtn').addEventListener('click', () => {
+  if (nztcsUnlocked) return;
+  document.getElementById('nztcsModal').classList.add('open');
+  document.getElementById('nztcsPasswordInput').value = '';
+  document.getElementById('nztcsError').style.display = 'none';
+  setTimeout(() => document.getElementById('nztcsPasswordInput').focus(), 80);
+});
+document.getElementById('nztcsCancelBtn').addEventListener('click', () => {
+  document.getElementById('nztcsModal').classList.remove('open');
+});
+document.getElementById('nztcsModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('nztcsModal')) document.getElementById('nztcsModal').classList.remove('open');
+});
+document.getElementById('nztcsUnlockBtn').addEventListener('click', async () => {
+  const pw   = document.getElementById('nztcsPasswordInput').value;
+  const hash = await hashPassword(pw);
+  if (hash === NZTCS_HASH) {
+    document.getElementById('nztcsModal').classList.remove('open');
+    await loadNztcsData();
+  } else {
+    document.getElementById('nztcsError').style.display = 'block';
+  }
+});
+document.getElementById('nztcsPasswordInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('nztcsUnlockBtn').click();
+});
+// Auto-restore from previous session
+if (localStorage.getItem(NZTCS_LS_KEY) === '1') loadNztcsData();
 document.getElementById('modalCancel').addEventListener('click', () => { complexModal.classList.remove('open'); pendingLoad = null; });
 document.getElementById('modalProceed').addEventListener('click', () => {
   complexModal.classList.remove('open');
@@ -2019,7 +2172,7 @@ function buildChecklist(records) {
     const name = r.species || r.scientificName || 'Unknown';
     const key  = r.taxonKey || name;
     if (!byGroup[g]) byGroup[g] = {};
-    if (!byGroup[g][name]) byGroup[g][name] = { count: 0, taxonKey: key, common: '' };
+    if (!byGroup[g][name]) byGroup[g][name] = { count: 0, taxonKey: key, common: '', record: r };
     byGroup[g][name].count++;
     if (!byGroup[g][name].common && r.vernacularName && !isBandingCode(r.vernacularName)) byGroup[g][name].common = r.vernacularName;
     if (!byGroup[g][name].common && r.taxonKey) byGroup[g][name].common = cachedName(r.taxonKey);
@@ -2033,8 +2186,9 @@ function buildChecklist(records) {
       const row = document.createElement('div'); row.className = 'cl-row';
       row.dataset.species = name;
       row.dataset.common  = info.common;
+      const badge = nztcsBadgeHtml(lookupNztcs(info.record));
       row.innerHTML =
-        '<div class="cl-row-top"><span class="cl-name">' + name + '</span><span class="cl-count">' + info.count + '</span></div>' +
+        '<div class="cl-row-top"><span class="cl-name">' + name + badge + '</span><span class="cl-count">' + info.count + '</span></div>' +
         (info.common ? '<div class="cl-common">' + info.common + '</div>' : '');
       row.addEventListener('click', () => {
         if (selectedSpecies === name) clearSpeciesSelection();
