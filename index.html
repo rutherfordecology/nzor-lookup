@@ -338,7 +338,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
     <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a></h1>
-    <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v1.57</span>
+    <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v1.58</span>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -1605,8 +1605,14 @@ function makeStackedPopup(stackedRecords) {
 
 function makeMarker(stackedRecords) {
   const rep = stackedRecords[0];
-  const lat = rep.decimalLatitude, lng = rep.decimalLongitude;
-  if (lat == null || lng == null) return null;
+  const lat = rep.decimalLatitude;
+  if (lat == null || rep.decimalLongitude == null) return null;
+  // Shift lng to the world copy nearest to the current map centre so markers
+  // appear in the viewport even when the map is panned past the antimeridian.
+  const centerLng = map.getCenter().lng;
+  let lng = rep.decimalLongitude;
+  while (lng < centerLng - 180) lng += 360;
+  while (lng > centerLng + 180) lng -= 360;
 
   const groups = [...new Set(stackedRecords.map(r => getTaxonGroup(r)))];
   const fillColour = groups.length === 1 ? getTaxonColour(rep) : '#6B7280';
@@ -1673,7 +1679,13 @@ function renderHeatmap(records) {
   if (clusterLayer) { map.removeLayer(clusterLayer); clusterLayer = null; }
   if (heatLayer)    { map.removeLayer(heatLayer); heatLayer = null; }
   const filtered = records.filter(r => passesFilters(r) && r.decimalLatitude != null);
-  heatLayer = L.heatLayer(filtered.map(r => [r.decimalLatitude, r.decimalLongitude, 0.5]), { radius: 20, blur: 15, maxZoom: 17 });
+  const heatCenterLng = map.getCenter().lng;
+  heatLayer = L.heatLayer(filtered.map(r => {
+    let hLng = r.decimalLongitude;
+    while (hLng < heatCenterLng - 180) hLng += 360;
+    while (hLng > heatCenterLng + 180) hLng -= 360;
+    return [r.decimalLatitude, hLng, 0.5];
+  }), { radius: 20, blur: 15, maxZoom: 17 });
   map.addLayer(heatLayer);
   document.getElementById('mShown').textContent = filtered.length.toLocaleString();
   csvData = buildCSV(filtered);
