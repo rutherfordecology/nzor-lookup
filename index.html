@@ -531,13 +531,14 @@ html, body { max-width: 100vw; overflow-x: hidden; }
     <div id="map"></div>
     <!-- Draw hint — visible until user starts drawing, then hidden permanently -->
     <div id="drawHint" style="
-      position:absolute; top:80px; left:48px; z-index:1000; pointer-events:none;
-      display:flex; align-items:center; gap:6px; animation: hintFade 0.4s ease;">
+      position:absolute; top:80px; left:48px; z-index:1000;
+      display:flex; align-items:center; gap:6px; animation: hintFade 0.4s ease; cursor:pointer;"
+      onclick="document.querySelector('.leaflet-draw-draw-polygon').click(); hideDrawHint();">
       <div style="
         background:var(--green-dark); color:#fff; font-size:12px; font-weight:500;
         padding:6px 10px; border-radius:20px; white-space:nowrap;
         box-shadow:0 2px 8px rgba(0,0,0,0.25); line-height:1.3;">
-        ← Draw your area here
+        ← Click here to start drawing
       </div>
     </div>
     <div id="drawActionBar">
