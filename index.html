@@ -112,6 +112,7 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
 
 .export-row { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 0.6rem; }
 .draw-dist-label { background: transparent !important; border: none !important; box-shadow: none !important; overflow: visible !important; pointer-events: none; }
+.leaflet-top.leaflet-right { right: 15px; }
 .draw-dist-label span { display: inline-block; background: rgba(0,0,0,0.68); color: #fff; font-size: 13px; font-weight: 600; padding: 3px 9px; border-radius: 10px; white-space: nowrap; font-family: var(--font-sans); box-shadow: 0 1px 5px rgba(0,0,0,0.45); transform: translate(-50%,-50%); pointer-events: none; }
 .draw-dist-moving span { background: rgba(200,97,26,0.92); }
 .dl-btn { width: 100%; padding: 8px; font-size: 13px; font-family: var(--font-sans); font-weight: 500; background: var(--green-light); color: var(--green-dark); border: 1px solid var(--green-mid); border-radius: var(--radius); cursor: pointer; transition: background 0.12s; }
@@ -366,7 +367,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
     <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a></h1>
-    <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v1.98</span>
+    <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v1.99</span>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -1205,6 +1206,8 @@ function clearResults() {
   statusBar.style.display = 'none'; progressWrap.style.display = 'none';
   progressTrack.querySelectorAll('.progress-footprint').forEach(fp => fp.classList.remove('visible'));
   checklistPanel.classList.remove('open');
+  document.getElementById('btnChecklist').textContent = 'Species checklist';
+  document.getElementById('btnChecklist').classList.remove('active');
   clScroll.innerHTML = ''; clSelectedInfo.style.display = 'none';
   const _clf = document.getElementById('clFooter'); if (_clf) _clf.style.display = 'none';
   if (clusterLayer) { map.removeLayer(clusterLayer); clusterLayer = null; }
@@ -1489,7 +1492,7 @@ async function loadNztcsData() {
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     nztcsData     = await resp.json();
     nztcsUnlocked = true;
-    localStorage.setItem(NZTCS_LS_KEY, '1');
+    sessionStorage.setItem(NZTCS_LS_KEY, '1');
     updateNztcsBtn();
     if (allRecords.length > 0) buildChecklist(allRecords);
   } catch(err) {
@@ -1524,7 +1527,7 @@ document.getElementById('nztcsPasswordInput').addEventListener('keydown', e => {
   if (e.key === 'Enter') document.getElementById('nztcsUnlockBtn').click();
 });
 // Auto-restore from previous session
-if (localStorage.getItem(NZTCS_LS_KEY) === '1') loadNztcsData();
+if (sessionStorage.getItem(NZTCS_LS_KEY) === '1') loadNztcsData();
 document.getElementById('modalCancel').addEventListener('click', () => { complexModal.classList.remove('open'); pendingLoad = null; });
 document.getElementById('modalProceed').addEventListener('click', () => {
   complexModal.classList.remove('open');
@@ -2873,6 +2876,40 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v1.98</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Fish detection overhaul — added ~25 modern fish orders split from Perciformes in current taxonomy (gobiiformes, carangiformes, labriformes, scombriformes and more), plus class-based fallback for records with missing order data</li>
+        <li>Species matching improvements — GBIF taxon keys now used for primary lookup, avoiding mismatches from genus reclassifications and synonyms</li>
+        <li>Classification data columns added to CSV exports (occurrences and species list)</li>
+        <li>Map/satellite layer control repositioned to avoid overlap with checklist panel</li>
+        <li>Checklist button now resets correctly when a new polygon is drawn</li>
+        <li>Conservation status feature locks on tab close rather than persisting across browser sessions</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v1.90</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Record cap raised to 100,000 (was 10,000) — large areas and broad filters now load full datasets</li>
+        <li>Coordinate precision warning threshold refined — low-precision records flagged at &gt;1.5 km uncertainty</li>
+        <li>Species richness indicator added to results metrics</li>
+        <li>Common name detection improved — API-preferred names take priority, with fallback voting across occurrence records; foreign-language names now correctly excluded for English-speaking regions</li>
+        <li>Record-level photos — where available, view the photo attached to an individual occurrence record and toggle back to the species photo</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v1.75</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>KML and KMZ file import — drop a file onto the map to load polygons directly</li>
+        <li>Multiple polygon support — draw or import several areas and fetch all at once</li>
+        <li>KML export added alongside CSV and GeoJSON</li>
+        <li>Species checklist — click any species to highlight its records on the map; photos load from iNaturalist</li>
+        <li>Taxon group filter chips added to results view</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v1.62</span>
       <span class="changelog-date">May 2026</span>
