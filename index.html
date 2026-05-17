@@ -94,10 +94,10 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
 .progress-wrap { margin-top: 0.6rem; display: none; }
 .progress-track { height: 28px; background: transparent; position: relative; }
 .progress-track::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--surface2); transform: translateY(-50%); border-radius: 1px; }
-.progress-footprint { position: absolute; top: 50%; color: var(--green); opacity: 0; transform: translate(-50%, -60%) scale(0.4) rotate(-10deg); transition: opacity 0.25s, transform 0.25s; pointer-events: none; }
-.progress-footprint.right-foot { transform: translate(-50%, -40%) scaleX(-1) scale(0.4) rotate(10deg); }
-.progress-footprint.visible { opacity: 1; transform: translate(-50%, -60%) scale(1) rotate(-10deg); }
-.progress-footprint.right-foot.visible { transform: translate(-50%, -40%) scaleX(-1) scale(1) rotate(10deg); }
+.progress-footprint { position: absolute; top: 2px; color: var(--green); opacity: 0; transform: translateX(-50%) scale(0.4); transition: opacity 0.25s, transform 0.25s; pointer-events: none; }
+.progress-footprint.right-foot { top: 17px; transform: translateX(-50%) scale(0.4) scaleY(-1); }
+.progress-footprint.visible { opacity: 1; transform: translateX(-50%) scale(1); }
+.progress-footprint.right-foot.visible { opacity: 1; transform: translateX(-50%) scale(1) scaleY(-1); }
 .progress-label { font-size: 11px; color: var(--text3); margin-top: 2px; }
 
 .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-top: 0.7rem; }
@@ -345,7 +345,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
     <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a></h1>
-    <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v1.73</span>
+    <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v1.74</span>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -907,11 +907,11 @@ const progressTrack  = document.getElementById('progressTrack');
 const progressLabel  = document.getElementById('progressLabel');
 
 // Bird footprint SVG — 3 forward toes + 1 back toe
-const _footSVG = '<svg viewBox="0 0 10 15" width="10" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">' +
-  '<line x1="5" y1="9" x2="5" y2="1"/>' +   // middle toe
-  '<line x1="5" y1="9" x2="1.5" y2="4"/>' + // left toe
-  '<line x1="5" y1="9" x2="8.5" y2="4"/>' + // right toe
-  '<line x1="5" y1="9" x2="5" y2="13"/>' +  // back toe
+const _footSVG = '<svg viewBox="0 0 14 10" width="13" height="9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">' +
+  '<line x1="5" y1="5" x2="13" y2="5"/>' +   // middle toe →
+  '<line x1="5" y1="5" x2="11" y2="1.5"/>' + // upper toe ↗
+  '<line x1="5" y1="5" x2="11" y2="8.5"/>' + // lower toe ↘
+  '<line x1="5" y1="5" x2="2"  y2="5"/>' +   // back toe ←
   '</svg>';
 
 // Footprint positions (% along track) — 11 steps, alternating feet
