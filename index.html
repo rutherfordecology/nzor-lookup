@@ -398,7 +398,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v2.69</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v2.70</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -1384,7 +1384,14 @@ function isEdnaRecord(r) {
 }
 
 function passesFilters(r) {
-  return activeFilters.has(getTaxonGroup(r));
+  if (!activeFilters.has(getTaxonGroup(r))) return false;
+  if (nztcsUnlocked && currentNztcsFilter !== 'all') {
+    const allowed = NZTCS_FILTER_GROUPS[currentNztcsFilter] || [];
+    const match = lookupNztcs(r);
+    const status = match ? (match.entry.status || '') : '';
+    return allowed.includes(status);
+  }
+  return true;
 }
 
 function clearResults() {
@@ -2115,6 +2122,9 @@ document.getElementById('clNztcsFilters').addEventListener('click', e => {
   currentNztcsFilter = btn.dataset.f;
   document.querySelectorAll('.nztcs-fc').forEach(b => b.classList.toggle('active', b === btn));
   filterChecklistSearch();
+  if (viewMode === 'points') renderPoints(allRecords);
+  else if (viewMode === 'heat') renderHeatmap(allRecords);
+  csvData = buildCSV(allRecords.filter(passesFilters));
 });
 
 async function loadNztcsData() {
@@ -2132,26 +2142,27 @@ async function loadNztcsData() {
 }
 
 // Called after each search completes. Shows NZTCS button only for NZ searches.
-async function maybeActivateNztcs(dominantCountry) {
+function maybeActivateNztcs(dominantCountry) {
   const btn = document.getElementById('clNztcsBtn');
   if (dominantCountry !== 'NZ') {
-    // Not a NZ search — hide button and deactivate
     btn.style.display = 'none';
     nztcsUnlocked = false;
     document.getElementById('clNztcsFilters').style.display = 'none';
+    currentNztcsFilter = 'all';
     return;
   }
-  // NZ search — show button
+  // NZ search — show the button; user must click it to activate
   btn.style.display = '';
-  if (nztcsUnlocked) return; // already active
-  // Show beta disclaimer if not yet agreed
+}
+
+document.getElementById('clNztcsBtn').addEventListener('click', async () => {
+  if (nztcsUnlocked) return; // already active, button is informational only
   if (!nztcsBetaAgreed) {
     document.getElementById('nztcsBetaModal').classList.add('open');
-    // loadNztcsData is called from the Accept button handler below
   } else {
     await loadNztcsData();
   }
-}
+});
 
 document.getElementById('nztcsBetaAcceptBtn').addEventListener('click', async () => {
   document.getElementById('nztcsBetaModal').classList.remove('open');
@@ -3662,6 +3673,14 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v2.70</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>NZTCS beta popup now triggers when you click the NZTCS button, not automatically when results load</li>
+        <li>Clicking a threat category chip (NC, NE, NV etc.) now filters the map as well as the checklist</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v2.69</span>
       <span class="changelog-date">May 2026</span>
