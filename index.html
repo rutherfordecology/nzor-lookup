@@ -397,7 +397,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v2.44</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v2.49</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -1366,6 +1366,9 @@ function getTaxonGroup(r) {
       phylum === 'Neocallimastigomycota' || phylum === 'Zoopagomycota' || phylum === 'Entomophthoromycota' ||
       phylum === 'Kickxellomycota' || phylum === 'Mortierellomycota' || phylum === 'Calcarisporiellomycota') return 'Fungi';
 
+  // Plantae records with unrecognised class (e.g. old backbone names like Hamamelidae, Rosopsida, Dicotyledoneae)
+  if (kingdom === 'Plantae') return 'Angiosperms';
+
   return 'Other';
 }
 function getTaxonColour(r) { return (TAXON_COLOURS[getTaxonGroup(r)] || TAXON_COLOURS['Other']).colour; }
@@ -1958,7 +1961,7 @@ document.getElementById('disclaimerAccept').addEventListener('click', () => {
 });
 
 // ── NZTCS conservation status ──────────────────────────────────────────────
-const NZTCS_HASH   = '3057b09c2d2673d82c6b7a64abff327c0b0c3b0380ee6f9e2ee1a68c7eb1499a';
+const NZTCS_HASH   = '0667bd893799ba7a888de6d210b773825f25e1576e9ad503c0061015868192e1';
 const NZTCS_LS_KEY = 'nztcs_unlocked';
 let nztcsData     = null;
 let nztcsUnlocked = false;
@@ -2095,7 +2098,6 @@ async function loadNztcsData() {
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     nztcsData     = await resp.json();
     nztcsUnlocked = true;
-    sessionStorage.setItem(NZTCS_LS_KEY, '1');
     updateNztcsBtn();
     if (allRecords.length > 0) buildChecklist(allRecords);
   } catch(err) {
@@ -2129,8 +2131,6 @@ document.getElementById('nztcsUnlockBtn').addEventListener('click', async () => 
 document.getElementById('nztcsPasswordInput').addEventListener('keydown', e => {
   if (e.key === 'Enter') document.getElementById('nztcsUnlockBtn').click();
 });
-// Auto-restore from previous session
-if (sessionStorage.getItem(NZTCS_LS_KEY) === '1') loadNztcsData();
 document.getElementById('modalCancel').addEventListener('click', () => { complexModal.classList.remove('open'); pendingLoad = null; });
 document.getElementById('modalProceed').addEventListener('click', () => {
   complexModal.classList.remove('open');
@@ -2317,6 +2317,7 @@ async function lookupCommonNames(records) {
 // CC photo cache: taxonKey → { url, licence, photographer } or null
 const photoCache     = {};
 const photoListCache = {}; // taxonKey -> [{url,licence,photographer}, ...]
+const inatIdCache    = {}; // taxonKey -> iNaturalist taxon id (integer)
 const _photoSlots    = {}; // slotId   -> {photos:[...], idx:0}
 
 // sciName → iNat taxon result cache (keyed by taxonKey)
@@ -2455,13 +2456,44 @@ function tkProjectUrl(projectId) {
   return uuid ? 'https://localcontextshub.org/projects/' + uuid : projectId;
 }
 
+async function resolveInatLink(linkId, taxonKey, sciName) {
+  if (inatIdCache[taxonKey]) {
+    setInatHref(linkId, inatIdCache[taxonKey], sciName);
+    return;
+  }
+  const binomial = (sciName || '').split(/\s+/).slice(0, 2).join(' ');
+  if (!binomial) return;
+  try {
+    const res = await fetch('https://api.inaturalist.org/v1/taxa?q=' + encodeURIComponent(binomial) + '&rank=species&per_page=1&is_active=true');
+    if (res.ok) {
+      const data = await res.json();
+      const taxon = (data.results || [])[0];
+      if (taxon && taxon.id) {
+        inatIdCache[taxonKey] = taxon.id;
+        setInatHref(linkId, taxon.id, sciName);
+      }
+    }
+  } catch(e) {}
+}
+function setInatHref(linkId, id, sciName) {
+  const el = document.getElementById(linkId);
+  if (!el) return;
+  const binomial = (sciName || '').split(/\s+/).slice(0, 2).join(' ');
+  el.href = 'https://www.inaturalist.org/taxa/' + id + '-' + binomial.replace(/\s+/g, '-') + '#map-tab';
+}
+
 function buildRecordPage(rec) {
   const vn = rec.vernacularName;
   const common  = (vn && !isBandingCode(vn)) ? vn : cachedName(rec.taxonKey);
+  const binomial = (rec.scientificName || '').split(/\s+/).slice(0, 2).join(' ');
+  const linkId   = 'inat-nm-' + (rec.taxonKey || Math.random().toString(36).slice(2));
+  const initHref = binomial ? 'https://www.inaturalist.org/taxa/search?q=' + encodeURIComponent(binomial) : '#';
+  const linkAttr = ' id="' + linkId + '" href="' + initHref + '" target="_blank" rel="noopener" title="View on iNaturalist map" style="color:inherit;text-decoration:none;border-bottom:1px dotted #aaa;"';
   const primary = common
-    ? '<div style="font-weight:600;font-size:13px;">' + common + '</div>' +
+    ? '<div style="font-weight:600;font-size:13px;"><a' + linkAttr + '>' + common + '</a></div>' +
       '<div style="color:#9b9890;font-size:11px;font-style:italic;margin-top:1px;">' + (rec.scientificName || '') + '</div>'
-    : '<div style="font-weight:600;font-size:13px;">' + (rec.scientificName || 'Unknown') + '</div>';
+    : '<div style="font-weight:600;font-size:13px;"><a' + linkAttr + '>' + (rec.scientificName || 'Unknown') + '</a></div>';
+  setTimeout(() => resolveInatLink(linkId, rec.taxonKey, rec.scientificName), 0);
   const cls     = rec.class ? '<div style="color:#9b9890;font-size:11px;">' + rec.class + '</div>' : '';
   const date    = rec.eventDate   ? '<div style="margin-top:4px;font-size:12px;"><b>Date:</b> ' + rec.eventDate + '</div>' : '';
   const source  = rec.datasetName ? '<div style="font-size:12px;"><b>Source:</b> ' + rec.datasetName + '</div>' : '';
@@ -3573,6 +3605,41 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v2.49</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Clicking a species name in the map popup opens the iNaturalist taxa map for that species</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v2.48</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Fix Plantae records with old backbone class names (e.g. Hamamelidae, Rosopsida) falling through to "Other" — any kingdom Plantae record now routes to Angiosperms as a fallback</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v2.47</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>NZTCS unlock no longer persists across page loads — each new instance starts locked</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v2.46</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Fix NZTCS false positives: added missing GBIF taxon keys for kawakawa (Piper excelsum subsp. excelsum, Not Threatened) and Geniostoma ligustrifolium var. majus (NU) so records match the correct status instead of a threatened sibling subspecies</li>
+      </ul>
+    </div>
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v2.45</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Reset NZTCS unlock password</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v2.44</span>
       <span class="changelog-date">May 2026</span>
