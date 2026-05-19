@@ -2274,6 +2274,24 @@ function updateEpbcChipCounts() {
   });
 }
 
+function scheduleEpbcBatch(tasks) {
+  // Deduplicate by binomial — same species may appear multiple times across groups.
+  // Cached species resolve instantly; only uncached ones consume a network slot.
+  const seen = new Set();
+  const deduped = tasks.filter(([, sciName]) => {
+    const bin = (sciName || '').trim().split(/\s+/).slice(0, 2).join(' ');
+    if (!bin || seen.has(bin)) return false;
+    seen.add(bin);
+    return true;
+  });
+  const BATCH = 8, DELAY = 150;
+  function runAt(offset) {
+    deduped.slice(offset, offset + BATCH).forEach(([rowId, sciName]) => resolveEpbcBadge(rowId, sciName));
+    if (offset + BATCH < deduped.length) setTimeout(() => runAt(offset + BATCH), DELAY);
+  }
+  runAt(0);
+}
+
 async function fetchEpbcStatus(sciName) {
   if (!sciName) return null;
   const binomial = sciName.trim().split(/\s+/).slice(0, 2).join(' ');
@@ -3226,6 +3244,7 @@ function buildChecklist(records) {
   clScroll.innerHTML = '';
   let hasUncertain = false;
   let clRowId = 0;
+  const epbcTasks = [];
   Object.keys(byGroup).sort().forEach(g => {
     const label = (TAXON_COLOURS[g] || { label: g }).label;
     const gh = document.createElement('div'); gh.className = 'cl-group-header'; gh.textContent = label;
@@ -3252,10 +3271,11 @@ function buildChecklist(records) {
       clScroll.appendChild(row);
       if (epbcUnlocked) {
         const sciName = info.record.species || info.record.scientificName || name;
-        setTimeout(() => resolveEpbcBadge(rowId, sciName), 0);
+        epbcTasks.push([rowId, sciName]);
       }
     });
   });
+  if (epbcUnlocked && epbcTasks.length) scheduleEpbcBatch(epbcTasks);
   if (nztcsUnlocked) {
     updateNztcsChipCounts();
     if (currentNztcsFilter !== 'all') filterChecklistSearch();
