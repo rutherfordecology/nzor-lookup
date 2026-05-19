@@ -397,7 +397,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v2.31</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v2.32</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -1087,7 +1087,7 @@ map.on(L.Draw.Event.CREATED, e => {
 
 
 // State
-let polygons = [], refLayers = [], allRecords = [], activeFilters = new Set();
+let polygons = [], refLayers = [], clipTurfPolygons = null, allRecords = [], activeFilters = new Set();
 let viewMode = 'points', selectedSpecies = null, nextPolyId = 0, csvData = null, pendingLoad = null;
 let currentNztcsFilter = 'all';
 let allMarkers = [];
@@ -1487,6 +1487,7 @@ function renderPolyList() {
 clearAllBtn.addEventListener('click', () => {
   polygons.forEach(p => polyLayer.removeLayer(p.layer)); polygons = []; nextPolyId = 0;
   refLayers.forEach(l => polyLayer.removeLayer(l)); refLayers = [];
+  clipTurfPolygons = null;
   renderPolyList(); runBtn.disabled = true; clearAllBtn.style.display = 'none'; clearResults();
 });
 
@@ -1766,52 +1767,23 @@ browseAddBtn.addEventListener('click', () => {
   exitBrowseMode();
 
   if (doIntersect) {
-    // Remove drawn polygon(s) from the query list but keep them on the map as reference outlines
+    // Store drawn polygon(s) as turf clip shapes for post-fetch filtering
+    clipTurfPolygons = drawnSnapshot.map(dp => {
+      try { return turf.polygon([closeRingCoords(dp.latlngs.map(llToGeoJSON))]); }
+      catch(e) { return null; }
+    }).filter(Boolean);
+
+    // Remove drawn polygon(s) from the query list, keep as faint reference outlines
     drawnSnapshot.forEach(dp => {
       const idx = polygons.indexOf(dp);
       if (idx !== -1) polygons.splice(idx, 1);
       dp.layer.setStyle({ dashArray: '8,5', fillOpacity: 0.03, opacity: 0.4, weight: 1.5 });
       refLayers.push(dp.layer);
     });
-    if (polygons.length === 0) { runBtn.disabled = true; clearAllBtn.style.display = 'none'; }
 
-    let added = 0, skipped = 0;
-    selected.forEach(bp => {
-      const coordsA = closeRingCoords(bp.latlngs.map(llToGeoJSON));
-      drawnSnapshot.forEach(drawnPoly => {
-        const coordsB = closeRingCoords(drawnPoly.latlngs.map(llToGeoJSON));
-        try {
-          const result = turf.intersect(turf.polygon([coordsA]), turf.polygon([coordsB]));
-          if (!result) { skipped++; return; }
-          const geom = result.geometry;
-          if (geom.type === 'Polygon') {
-            addPolygon(geom.coordinates[0].map(c => [c[1], c[0]]), bp.name + ' ∩ ' + drawnPoly.label);
-            added++;
-          } else if (geom.type === 'MultiPolygon') {
-            geom.coordinates.forEach((part, i) => {
-              addPolygon(part[0].map(c => [c[1], c[0]]), bp.name + ' ∩ ' + drawnPoly.label + (i > 0 ? ' (' + (i+1) + ')' : ''));
-              added++;
-            });
-          }
-        } catch(e) { skipped++; }
-      });
-    });
-    if (added === 0) {
-      // No intersections — restore drawn polygon(s) as active
-      drawnSnapshot.forEach(dp => {
-        const colour = dp.layer.options.color;
-        dp.layer.setStyle({ dashArray: null, fillOpacity: 0.1, opacity: 1, weight: 2, color: colour, fillColor: colour });
-        const ri = refLayers.indexOf(dp.layer);
-        if (ri !== -1) refLayers.splice(ri, 1);
-        polygons.push(dp);
-      });
-      renderPolyList();
-      runBtn.disabled = polygons.length === 0;
-      if (polygons.length > 0) clearAllBtn.style.display = 'block';
-      setStatus('No overlap found between selected and drawn polygon(s). Original polygon restored.', 'warning');
-    } else {
-      setStatus(added + ' clipped polygon' + (added === 1 ? '' : 's') + ' added.' + (skipped ? ' ' + skipped + ' had no overlap.' : '') + ' Ready to fetch.', 'success');
-    }
+    // Add the selected KMZ polygons directly as query areas
+    selected.forEach(bp => addPolygon(bp.latlngs, bp.name));
+    setStatus(selected.length + ' polygon' + (selected.length === 1 ? '' : 's') + ' added — records will be clipped to your drawn area after fetching.', 'info');
   } else {
     selected.forEach(bp => addPolygon(bp.latlngs, bp.name));
     setStatus(selected.length.toLocaleString() + ' polygon' + (selected.length === 1 ? '' : 's') + ' added. Ready to fetch.', 'success');
@@ -3210,6 +3182,20 @@ runBtn.addEventListener('click', async () => {
 
   if (allFetched.length === 0) { setStatus('No records found for any polygon with these parameters.', 'warning'); setFetchMode(false); return; }
 
+  // Post-fetch spatial clip: if a drawn polygon was used as a study-area boundary,
+  // discard any records that fall outside it (GBIF was queried on the larger KMZ shapes).
+  if (clipTurfPolygons && clipTurfPolygons.length > 0) {
+    const before = allFetched.length;
+    const clipped = allFetched.filter(r => {
+      if (r.decimalLatitude == null || r.decimalLongitude == null) return false;
+      const pt = turf.point([r.decimalLongitude, r.decimalLatitude]);
+      return clipTurfPolygons.some(cp => { try { return turf.booleanPointInPolygon(pt, cp); } catch(e) { return true; } });
+    });
+    allFetched.length = 0; clipped.forEach(r => allFetched.push(r));
+    const removed = before - allFetched.length;
+    if (removed > 0) setStatus('Clipped to drawn area — ' + removed.toLocaleString() + ' record' + (removed === 1 ? '' : 's') + ' outside boundary removed.', 'info');
+  }
+
   setStatus('Looking up common names...', 'info');
   await lookupCommonNames(allFetched);
   if (partialLoadWarning) setStatus(partialLoadWarning, 'warning');
@@ -3448,6 +3434,13 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v2.32</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Fixed clip-to-drawn-polygon — now queries GBIF using the KMZ polygon shapes, then filters returned records client-side using point-in-polygon against the drawn study area. More reliable than the previous intersection geometry approach.</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v2.31</span>
       <span class="changelog-date">May 2026</span>
