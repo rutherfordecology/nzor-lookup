@@ -73,7 +73,9 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
 
 .poly-list { margin-top: 0.6rem; display: flex; flex-direction: column; gap: 5px; }
 .poly-item { display: flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: var(--radius); background: var(--green-light); border: 0.5px solid var(--green-mid); font-size: 12px; color: var(--green-dark); }
-.poly-item-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.poly-item-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: text; }
+.poly-item-name:hover { text-decoration: underline dotted; }
+.poly-name-input { flex: 1; font-size: 12px; font-family: var(--font-sans); color: var(--green-dark); background: white; border: 1px solid var(--green-mid); border-radius: 4px; padding: 1px 5px; min-width: 0; outline: none; }
 .poly-item-count { font-size: 11px; color: var(--green); flex-shrink: 0; }
 .poly-remove { cursor: pointer; color: var(--green); font-size: 14px; flex-shrink: 0; line-height: 1; padding: 4px 8px; min-width: 30px; min-height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 4px; }
 .poly-remove:hover { color: var(--red); }
@@ -396,7 +398,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v2.65</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v2.66</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -795,7 +797,7 @@ const TAXON_COLOURS = {
   'Fungi':           { colour: '#D97706', label: 'Fungi' },
   'Other':           { colour: '#6B7280', label: 'Other' }
 };
-const CSV_FIELDS = ['gbifID','eventDate','year','month','day','scientificName','vernacularName','kingdom','phylum','class','order','family','genus','species','decimalLatitude','decimalLongitude','coordinateUncertaintyInMeters','hasGeospatialIssues','basisOfRecord','occurrenceID','taxonKey','datasetName','country','stateProvince','locality','recordedBy'];
+const CSV_FIELDS = ['gbifID','eventDate','year','month','day','scientificName','vernacularName','kingdom','phylum','class','order','family','genus','species','decimalLatitude','decimalLongitude','coordinateUncertaintyInMeters','hasGeospatialIssues','basisOfRecord','occurrenceID','taxonKey','datasetName','country','stateProvince','locality','recordedBy','polygon_name'];
 
 // Maps taxon checkbox values to the getTaxonGroup() strings they correspond to.
 // Used to post-filter downloaded records so non-target taxa don't slip through.
@@ -1551,7 +1553,31 @@ function renderPolyList() {
   polyList.querySelectorAll('.poly-item').forEach(el => el.remove());
   polygons.forEach(p => {
     const el = document.createElement('div'); el.className = 'poly-item';
-    el.innerHTML = '<span class="poly-item-name" title="' + p.label + '">&#10003; ' + p.label + '</span><span class="poly-item-count">' + p.latlngs.length + ' pts</span><span class="poly-remove" data-id="' + p.id + '">&#x2715;</span>';
+    el.innerHTML =
+      '<span class="poly-item-name" title="Click to rename">&#10003; ' + p.label + '</span>' +
+      '<span class="poly-item-count">' + p.latlngs.length + ' pts</span>' +
+      '<span class="poly-remove" data-id="' + p.id + '">&#x2715;</span>';
+
+    // Click name to edit inline
+    const nameSpan = el.querySelector('.poly-item-name');
+    nameSpan.addEventListener('click', () => {
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'poly-name-input';
+      input.value = p.label;
+      el.replaceChild(input, nameSpan);
+      input.focus(); input.select();
+      const commit = () => {
+        const val = input.value.trim() || p.label;
+        p.label = val;
+        // Update polygon_name on any already-fetched records
+        allRecords.forEach(r => { if (r.polygon_name === nameSpan.textContent.replace('✓ ','').trim()) r.polygon_name = val; });
+        renderPolyList();
+      };
+      input.addEventListener('blur', commit);
+      input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { input.value = p.label; input.blur(); } });
+    });
+
     el.querySelector('.poly-remove').addEventListener('click', () => removePolygon(p.id));
     polyList.appendChild(el);
   });
@@ -3294,6 +3320,7 @@ runBtn.addEventListener('click', async () => {
 
         json.results.forEach(r => {
           allFetched.push({
+            polygon_name:                  poly.label || null,
             gbifID:                        r.gbifID || null,
             eventDate:                     r.eventDate || null,
             year:                          r.year  != null ? String(r.year)  : null,
@@ -3633,6 +3660,14 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v2.66</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Polygon names are now editable — click the name in the polygon list to rename it</li>
+        <li>Exports (CSV, GeoJSON, KML) now include a polygon_name column showing which polygon each record came from</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v2.65</span>
       <span class="changelog-date">May 2026</span>
