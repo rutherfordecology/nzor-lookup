@@ -398,7 +398,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v2.75</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v2.76</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -538,7 +538,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
         <!-- Data quality summary -->
         <div class="quality-box" id="qualityBox">
           &#9888; precision &gt;1.5 km = <span class="quality-val" id="qHighUncert">-</span>
-          <div style="font-size:11px;opacity:0.75;margin-top:2px;">(shown as faint dots on map)</div>
+          <div style="font-size:11px;opacity:0.75;margin-top:2px;">(shown with a black ring on map)</div>
         </div>
 
         <!-- Species richness per polygon -->
@@ -2883,9 +2883,11 @@ function makeMarker(stackedRecords) {
   const uncertain = repUncert >= 1500;
   const baseFillOpacity = uncertain ? 0.65 : 0.85;
 
+  const strokeColor  = uncertain ? '#000' : '#fff';
+  const strokeWeight = uncertain ? 1.5 : (stackedRecords.length > 1 ? 2 : 1);
   const marker = L.circleMarker([lat, lng], {
-    radius, fillColor: fillColour, color: '#fff',
-    weight: stackedRecords.length > 1 ? 2 : 1, fillOpacity: baseFillOpacity
+    radius, fillColor: fillColour, color: strokeColor,
+    weight: strokeWeight, fillOpacity: baseFillOpacity
   });
   marker._baseFillOpacity = baseFillOpacity;
 
@@ -3716,6 +3718,13 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v2.76</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Low-precision markers (≥1.5 km uncertainty) now have a black ring instead of white — easier to distinguish from normal points at a glance</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v2.75</span>
       <span class="changelog-date">May 2026</span>
