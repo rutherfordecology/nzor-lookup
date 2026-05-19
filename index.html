@@ -396,7 +396,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v2.53</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v2.54</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -2653,7 +2653,11 @@ window._gbifSelectSpecies = function(pid, spIdx) {
         'style="background:none;border:none;cursor:pointer;font-size:13px;vertical-align:middle;padding:0 0 0 3px;line-height:1;opacity:0.75;" ' +
         'onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'0.75\'">📷</button>';
     }
-    return '<div style="padding:1px 0;">' + date + link + camBtn + '</div>';
+    const isEdna = r.basisOfRecord === 'MATERIAL_SAMPLE' ||
+                   /edna|environmental\s+dna/i.test(r.datasetName || '') ||
+                   /edna|environmental\s+dna/i.test(r.samplingProtocol || '');
+    const ednaBadge = isEdna ? ' <span title="Environmental DNA record" style="display:inline-block;padding:1px 6px;border-radius:10px;background:#16A34A;color:#fff;font-size:10px;font-weight:700;letter-spacing:0.04em;">eDNA</span>' : '';
+    return '<div style="padding:1px 0;">' + date + link + camBtn + ednaBadge + '</div>';
   }).join('');
   const countLabel = '<div style="font-size:11px;color:#9b9890;margin-bottom:2px;">' + sp.records.length + ' record' + (sp.records.length === 1 ? '' : 's') + (sp.records.length > 5 ? ' — scroll to see all' : '') + '</div>';
   const recordRows = countLabel + (sp.records.length > 5
@@ -3611,6 +3615,13 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v2.54</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Fix eDNA badge missing from multi-species popup record rows — the badge was only shown in single-record popups, not in the expanded species list</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v2.53</span>
       <span class="changelog-date">May 2026</span>
