@@ -182,6 +182,26 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
 .nztcs-fc[data-f="ar"].active  { background:#1e40af; color:white; border-color:#1e40af; }
 .nztcs-fc[data-f="rc"].active  { background:#166534; color:white; border-color:#166534; }
 .nztcs-fc[data-f="ex"].active  { background:#475569; color:white; border-color:#475569; }
+.cl-epbc-btn { font-size:10px; font-weight:600; font-family:var(--font-sans); background:none; border:0.5px solid var(--border); border-radius:4px; padding:3px 7px; cursor:pointer; color:var(--text3); transition:all 0.12s; white-space:nowrap; }
+.cl-epbc-btn:hover { border-color:#b45309; color:#b45309; }
+.cl-epbc-btn.unlocked { color:#92400e; border-color:#d97706; background:#fef3c7; }
+.cl-epbc-filters { display:flex; flex-wrap:wrap; gap:4px; padding:6px 10px; border-bottom:0.5px solid var(--border); background:var(--surface2); }
+.epbc-fc { font-size:10px; font-weight:700; font-family:var(--font-sans); padding:2px 7px; border-radius:3px; cursor:pointer; transition:all 0.1s; border:1px solid var(--border2); background:var(--surface); color:var(--text3); white-space:nowrap; }
+.epbc-fc:hover { color:var(--text); }
+.epbc-fc.active               { background:var(--green-dark); color:white; border-color:var(--green-dark); }
+.epbc-fc[data-f="ce"].active  { background:#7f1d1d; color:white; border-color:#7f1d1d; }
+.epbc-fc[data-f="e"].active   { background:#991b1b; color:white; border-color:#991b1b; }
+.epbc-fc[data-f="v"].active   { background:#92400e; color:white; border-color:#92400e; }
+.epbc-fc[data-f="cd"].active  { background:#1e40af; color:white; border-color:#1e40af; }
+.epbc-fc[data-f="ew"].active  { background:#374151; color:white; border-color:#374151; }
+.epbc-fc[data-f="ex2"].active { background:#1f2937; color:white; border-color:#1f2937; }
+.epbc-badge { display:inline-block; font-size:9px; font-weight:700; letter-spacing:0.03em; padding:1px 4px; border-radius:3px; vertical-align:middle; margin-left:5px; flex-shrink:0; white-space:nowrap; }
+.nb-epbc-ce { background:#7f1d1d; color:white; }
+.nb-epbc-e  { background:#b91c1c; color:white; }
+.nb-epbc-v  { background:#b45309; color:white; }
+.nb-epbc-cd { background:#1d4ed8; color:white; }
+.nb-epbc-ew { background:#374151; color:white; }
+.nb-epbc-ex { background:#111827; color:white; }
 
 .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 9999; align-items: center; justify-content: center; }
 .modal-overlay.open { display: flex; }
@@ -396,7 +416,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v2.51</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v2.52</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -609,6 +629,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
         <span class="cl-title">Species checklist</span>
         <div style="display:flex;align-items:center;gap:6px;margin-right:36px;">
           <button class="cl-nztcs-btn" id="clNztcsBtn" title="Unlock NZTCS conservation status">🔒 NZTCS</button>
+          <button class="cl-epbc-btn" id="clEpbcBtn" title="Unlock EPBC conservation status" style="display:none;">🔒 EPBC</button>
           <button class="cl-close" id="clCloseBtn">&#x2715;</button>
         </div>
       </div>
@@ -628,8 +649,18 @@ html, body { max-width: 100vw; overflow-x: hidden; }
         <button class="nztcs-fc" data-f="rc">Recovering</button>
         <button class="nztcs-fc" data-f="ex">Extinct</button>
       </div>
+      <div class="cl-epbc-filters" id="clEpbcFilters" style="display:none;">
+        <button class="epbc-fc active" data-f="all">All</button>
+        <button class="epbc-fc" data-f="ce">CE</button>
+        <button class="epbc-fc" data-f="e">E</button>
+        <button class="epbc-fc" data-f="v">V</button>
+        <button class="epbc-fc" data-f="cd">CD</button>
+        <button class="epbc-fc" data-f="ew">EW</button>
+        <button class="epbc-fc" data-f="ex2">Ex</button>
+      </div>
       <div class="cl-scroll" id="clScroll"></div>
       <div class="cl-footer" id="clFooter" style="display:none;">* NZTCS status based on partial name match — may not be correct. Verify against the <a href="https://www.doc.govt.nz/nature/conservation-status/" target="_blank" style="color:inherit;text-decoration:underline;">NZ Threat Classification System</a>.</div>
+      <div class="cl-footer" id="clEpbcFooter" style="display:none;">EPBC status sourced live from the <a href="https://bie.ala.org.au" target="_blank" style="color:inherit;text-decoration:underline;">Atlas of Living Australia</a> — Commonwealth (national) status only.</div>
     </div>
 
     <div class="legend" id="legend">
@@ -732,6 +763,22 @@ html, body { max-width: 100vw; overflow-x: hidden; }
     <div class="modal-btns">
       <button class="modal-btn" id="nztcsCancelBtn">Cancel</button>
       <button class="modal-btn primary" id="nztcsUnlockBtn">Unlock</button>
+    </div>
+  </div>
+</div>
+
+<!-- EPBC unlock modal -->
+<div class="modal-overlay" id="epbcModal">
+  <div class="modal" style="max-width:360px;">
+    <h2 style="margin-bottom:0.5rem;">🔒 EPBC status</h2>
+    <p>Enter your access code to unlock Australian EPBC threatened species status badges in the species checklist. Status is fetched live from the <a href="https://bie.ala.org.au" target="_blank" style="color:var(--green);">Atlas of Living Australia</a>.</p>
+    <div class="field" style="margin-bottom:0.5rem;">
+      <input type="password" id="epbcPasswordInput" placeholder="Access code" autocomplete="off">
+    </div>
+    <div id="epbcError" style="font-size:12px;color:var(--red);margin-bottom:0.6rem;display:none;">Incorrect access code.</div>
+    <div class="modal-btns">
+      <button class="modal-btn" id="epbcCancelBtn">Cancel</button>
+      <button class="modal-btn primary" id="epbcUnlockBtn">Unlock</button>
     </div>
   </div>
 </div>
@@ -1127,6 +1174,7 @@ map.on(L.Draw.Event.CREATED, e => {
 let polygons = [], refLayers = [], clipTurfPolygons = null, allRecords = [], activeFilters = new Set();
 let viewMode = 'points', selectedSpecies = null, nextPolyId = 0, csvData = null, pendingLoad = null;
 let currentNztcsFilter = 'all';
+let currentEpbcFilter  = 'all';
 let allMarkers = [];
 let commonNameCache = {}; // taxonKey → Array of { vernacularName, language, country } from GBIF species API
 
@@ -1379,7 +1427,9 @@ function passesFilters(r) {
 function clearResults() {
   allRecords = []; activeFilters.clear(); csvData = null; selectedSpecies = null; allMarkers = []; commonNameCache = {};
   currentNztcsFilter = 'all';
+  currentEpbcFilter  = 'all';
   document.querySelectorAll('.nztcs-fc').forEach(b => b.classList.toggle('active', b.dataset.f === 'all'));
+  document.querySelectorAll('.epbc-fc').forEach(b => b.classList.toggle('active', b.dataset.f === 'all'));
   metricsGrid.style.display = 'none'; filterSection.style.display = 'none';
   legend.style.display = 'none'; outputSection.style.display = 'none';
   if (qualityBoxEl)  qualityBoxEl.style.display  = 'none';
@@ -1548,6 +1598,7 @@ function renderPolyList() {
     el.querySelector('.poly-remove').addEventListener('click', () => removePolygon(p.id));
     polyList.appendChild(el);
   });
+  updateRegionButtons();
 }
 
 clearAllBtn.addEventListener('click', () => {
@@ -2130,6 +2181,168 @@ document.getElementById('nztcsUnlockBtn').addEventListener('click', async () => 
 document.getElementById('nztcsPasswordInput').addEventListener('keydown', e => {
   if (e.key === 'Enter') document.getElementById('nztcsUnlockBtn').click();
 });
+
+// ── EPBC (Australian) conservation status via ALA ──────────────────────────
+const EPBC_HASH = '0667bd893799ba7a888de6d210b773825f25e1576e9ad503c0061015868192e1'; // "covenant"
+let epbcUnlocked = false;
+const epbcCache  = {}; // binomial → status string or null
+
+const EPBC_STATUS_CFG = {
+  'Critically Endangered':  { cls:'ce', label:'CE' },
+  'Endangered':             { cls:'e',  label:'E'  },
+  'Vulnerable':             { cls:'v',  label:'V'  },
+  'Conservation Dependent': { cls:'cd', label:'CD' },
+  'Extinct in the Wild':    { cls:'ew', label:'EW' },
+  'Extinct':                { cls:'ex', label:'Ex' },
+};
+
+const EPBC_FILTER_GROUPS = {
+  'ce':  ['Critically Endangered'],
+  'e':   ['Endangered'],
+  'v':   ['Vulnerable'],
+  'cd':  ['Conservation Dependent'],
+  'ew':  ['Extinct in the Wild'],
+  'ex2': ['Extinct'],
+};
+
+function getPolygonCentroid() {
+  let latSum = 0, lngSum = 0, count = 0;
+  for (const p of polygons) {
+    for (const ll of p.latlngs) {
+      latSum += (ll.lat !== undefined ? ll.lat : ll[0]);
+      lngSum += (ll.lng !== undefined ? ll.lng : ll[1]);
+      count++;
+    }
+  }
+  return count ? { lat: latSum / count, lng: lngSum / count } : null;
+}
+
+function getSearchRegion() {
+  const c = getPolygonCentroid();
+  if (!c) return null;
+  if (c.lat >= -47 && c.lat <= -34 && c.lng >= 166 && c.lng <= 178) return 'NZ';
+  if (c.lat >= -44 && c.lat <= -10 && c.lng >= 112 && c.lng <= 155) return 'AU';
+  return null;
+}
+
+function updateRegionButtons() {
+  const region  = getSearchRegion();
+  const nztcsBtn = document.getElementById('clNztcsBtn');
+  const epbcBtn  = document.getElementById('clEpbcBtn');
+  if (nztcsBtn) nztcsBtn.style.display = (region === 'AU') ? 'none' : '';
+  if (epbcBtn)  epbcBtn.style.display  = (region === 'NZ') ? 'none' : '';
+}
+
+function epbcBadgeHtml(status) {
+  const cfg = status && EPBC_STATUS_CFG[status];
+  if (!cfg) return '';
+  return '<span class="epbc-badge nb-epbc-' + cfg.cls + '" title="EPBC: ' + status + '">' + cfg.label + '</span>';
+}
+
+function updateEpbcBtn() {
+  const btn = document.getElementById('clEpbcBtn');
+  if (!btn) return;
+  if (epbcUnlocked) {
+    btn.textContent = '✅ EPBC';
+    btn.classList.add('unlocked');
+    btn.title = 'EPBC conservation status active';
+    document.getElementById('clEpbcFilters').style.display = 'flex';
+  } else {
+    btn.textContent = '🔒 EPBC';
+    btn.classList.remove('unlocked');
+    btn.title = 'Unlock EPBC conservation status';
+    document.getElementById('clEpbcFilters').style.display = 'none';
+  }
+}
+
+function updateEpbcChipCounts() {
+  const counts = { all: 0, ce: 0, e: 0, v: 0, cd: 0, ew: 0, ex2: 0 };
+  document.querySelectorAll('#clScroll .cl-row').forEach(row => {
+    counts.all++;
+    const status = row.dataset.epbc;
+    if (status) {
+      for (const [key, statuses] of Object.entries(EPBC_FILTER_GROUPS)) {
+        if (statuses.includes(status)) { counts[key]++; break; }
+      }
+    }
+  });
+  document.querySelectorAll('.epbc-fc[data-f]').forEach(btn => {
+    const f = btn.dataset.f;
+    if (!btn.dataset.baseLabel) btn.dataset.baseLabel = btn.textContent.replace(/\s*\(\d+\)$/, '');
+    const c = counts[f] !== undefined ? counts[f] : 0;
+    btn.textContent = (f !== 'all' && c > 0) ? btn.dataset.baseLabel + ' (' + c + ')' : btn.dataset.baseLabel;
+  });
+}
+
+async function fetchEpbcStatus(sciName) {
+  if (!sciName) return null;
+  const binomial = sciName.trim().split(/\s+/).slice(0, 2).join(' ');
+  if (!binomial) return null;
+  if (Object.prototype.hasOwnProperty.call(epbcCache, binomial)) return epbcCache[binomial];
+  epbcCache[binomial] = null; // mark in-flight
+  try {
+    const res = await fetch('https://bie.ala.org.au/ws/species/' + encodeURIComponent(binomial));
+    if (res.ok) {
+      const data = await res.json();
+      const aus = data.conservationStatuses && data.conservationStatuses.AUS;
+      epbcCache[binomial] = (aus && aus.status) ? aus.status : null;
+    }
+  } catch(e) {}
+  return epbcCache[binomial];
+}
+
+async function resolveEpbcBadge(rowId, sciName) {
+  const status = await fetchEpbcStatus(sciName);
+  const row = document.getElementById(rowId);
+  if (!row || !status || !EPBC_STATUS_CFG[status]) return;
+  row.dataset.epbc = status;
+  const nameSpan = row.querySelector('.cl-name');
+  if (nameSpan) {
+    const existing = nameSpan.querySelector('.epbc-badge');
+    if (existing) existing.remove();
+    nameSpan.insertAdjacentHTML('beforeend', epbcBadgeHtml(status));
+  }
+  updateEpbcChipCounts();
+  if (currentEpbcFilter !== 'all') filterChecklistSearch();
+}
+
+document.getElementById('clEpbcFilters').addEventListener('click', e => {
+  const btn = e.target.closest('.epbc-fc');
+  if (!btn) return;
+  currentEpbcFilter = btn.dataset.f;
+  document.querySelectorAll('.epbc-fc').forEach(b => b.classList.toggle('active', b === btn));
+  filterChecklistSearch();
+});
+
+document.getElementById('clEpbcBtn').addEventListener('click', () => {
+  if (epbcUnlocked) return;
+  document.getElementById('epbcModal').classList.add('open');
+  document.getElementById('epbcPasswordInput').value = '';
+  document.getElementById('epbcError').style.display = 'none';
+  setTimeout(() => document.getElementById('epbcPasswordInput').focus(), 80);
+});
+document.getElementById('epbcCancelBtn').addEventListener('click', () => {
+  document.getElementById('epbcModal').classList.remove('open');
+});
+document.getElementById('epbcModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('epbcModal')) document.getElementById('epbcModal').classList.remove('open');
+});
+document.getElementById('epbcUnlockBtn').addEventListener('click', async () => {
+  const pw   = document.getElementById('epbcPasswordInput').value;
+  const hash = await hashPassword(pw);
+  if (hash === EPBC_HASH) {
+    document.getElementById('epbcModal').classList.remove('open');
+    epbcUnlocked = true;
+    updateEpbcBtn();
+    if (allRecords.length > 0) buildChecklist(allRecords);
+  } else {
+    document.getElementById('epbcError').style.display = 'block';
+  }
+});
+document.getElementById('epbcPasswordInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('epbcUnlockBtn').click();
+});
+
 document.getElementById('modalCancel').addEventListener('click', () => { complexModal.classList.remove('open'); pendingLoad = null; });
 document.getElementById('modalProceed').addEventListener('click', () => {
   complexModal.classList.remove('open');
@@ -2964,7 +3177,12 @@ function filterChecklistSearch() {
       const allowed = NZTCS_FILTER_GROUPS[currentNztcsFilter] || [];
       matchNztcs = allowed.includes(row.dataset.nztcs || '');
     }
-    row.classList.toggle('hidden', !matchSearch || !matchNztcs);
+    let matchEpbc = true;
+    if (currentEpbcFilter !== 'all') {
+      const allowed = EPBC_FILTER_GROUPS[currentEpbcFilter] || [];
+      matchEpbc = allowed.includes(row.dataset.epbc || '');
+    }
+    row.classList.toggle('hidden', !matchSearch || !matchNztcs || !matchEpbc);
   });
   document.querySelectorAll('.cl-group-header').forEach(header => {
     let hasVisible = false, el = header.nextElementSibling;
@@ -3007,14 +3225,18 @@ function buildChecklist(records) {
   });
   clScroll.innerHTML = '';
   let hasUncertain = false;
+  let clRowId = 0;
   Object.keys(byGroup).sort().forEach(g => {
     const label = (TAXON_COLOURS[g] || { label: g }).label;
     const gh = document.createElement('div'); gh.className = 'cl-group-header'; gh.textContent = label;
     clScroll.appendChild(gh);
     Object.entries(byGroup[g]).sort((a,b) => a[0].localeCompare(b[0])).forEach(([name, info]) => {
       const row = document.createElement('div'); row.className = 'cl-row';
+      const rowId = 'clrow-' + (clRowId++);
+      row.id = rowId;
       row.dataset.species = name;
       row.dataset.common  = info.common;
+      row.dataset.epbc    = '';
       const nztcsMatch = lookupNztcs(info.record);
       const nztcsEntry = nztcsMatch ? nztcsMatch.entry : null;
       if (nztcsMatch && !nztcsMatch.certain) hasUncertain = true;
@@ -3028,6 +3250,10 @@ function buildChecklist(records) {
         else selectSpecies(name);
       });
       clScroll.appendChild(row);
+      if (epbcUnlocked) {
+        const sciName = info.record.species || info.record.scientificName || name;
+        setTimeout(() => resolveEpbcBadge(rowId, sciName), 0);
+      }
     });
   });
   if (nztcsUnlocked) {
@@ -3037,6 +3263,9 @@ function buildChecklist(records) {
     if (footer) {
       footer.style.display = hasUncertain ? '' : 'none';
     }
+  }
+  if (epbcUnlocked) {
+    document.getElementById('clEpbcFooter').style.display = '';
   }
 }
 
@@ -3464,6 +3693,13 @@ document.getElementById('dlCsvBtn').addEventListener('click', () => {
       });
     });
   }
+  if (epbcUnlocked) {
+    fields = [...fields, 'epbc_status'];
+    rows = rows.map(r => {
+      const bin = ((r.species || r.scientificName || '').trim().split(/\s+/).slice(0, 2).join(' '));
+      return Object.assign({}, r, { epbc_status: (bin && epbcCache[bin]) ? epbcCache[bin] : '' });
+    });
+  }
   downloadBlob(buildCSV(rows, fields), 'gbif_occurrences_' + new Date().toISOString().split('T')[0] + '.csv', 'text/csv;charset=utf-8;');
 });
 
@@ -3548,6 +3784,13 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
       e.nztcs_year     = m ? (m.entry.year     || '') : '';
     });
   }
+  // Attach EPBC fields if unlocked
+  if (epbcUnlocked) {
+    rows.forEach(e => {
+      const bin = (e.scientificName || '').trim().split(/\s+/).slice(0, 2).join(' ');
+      e.epbc_status = (bin && epbcCache[bin]) ? epbcCache[bin] : '';
+    });
+  }
   // Remove internal _record field before export
   rows.forEach(e => delete e._record);
   const isMobile = window.innerWidth < 768;
@@ -3555,6 +3798,7 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
     ? ['taxonGroup','scientificName','vernacularName','records']
     : ['taxonGroup','scientificName','vernacularName','kingdom','phylum','class','order','family','genus','records'];
   if (nztcsUnlocked && nztcsData) fields = [...fields, 'nztcs_status', 'nztcs_category', 'nztcs_year'];
+  if (epbcUnlocked) fields = [...fields, 'epbc_status'];
   const esc = v => { const s = String(v||''); return (s.includes(',') || s.includes('"')) ? '"' + s.replace(/"/g,'""') + '"' : s; };
   downloadBlob(
     [fields.join(','), ...rows.map(r => fields.map(f => esc(r[f])).join(','))].join('\n'),
@@ -3610,6 +3854,14 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v2.52</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Australian EPBC threatened species status — unlock with access code to see live Commonwealth conservation status badges (CE, E, V, CD, EW, Ex) fetched from the Atlas of Living Australia; filter checklist by threat category; status exported in CSV/checklist</li>
+        <li>NZTCS button hidden for Australian searches; EPBC button hidden for New Zealand searches — each system only activates in the region it applies to</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v2.51</span>
       <span class="changelog-date">May 2026</span>
