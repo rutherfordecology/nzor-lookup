@@ -397,7 +397,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v2.28</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v2.29</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -2323,6 +2323,21 @@ function sourceLink(rec) {
   return '';
 }
 
+function parseTKProjectId(dynamicProps) {
+  if (!dynamicProps) return null;
+  try {
+    const obj = JSON.parse(dynamicProps);
+    if (obj.local_contexts_project_id) return obj.local_contexts_project_id;
+  } catch(e) {}
+  const m = dynamicProps.match(/local_contexts_project_id\s*[:=]\s*([^\s;,}"']+)/i);
+  return m ? m[1] : null;
+}
+
+function tkProjectUrl(projectId) {
+  const uuid = (projectId.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i) || [])[0];
+  return uuid ? 'https://localcontextshub.org/projects/' + uuid : projectId;
+}
+
 function buildRecordPage(rec) {
   const vn = rec.vernacularName;
   const common  = (vn && !isBandingCode(vn)) ? vn : cachedName(rec.taxonKey);
@@ -2351,9 +2366,16 @@ function buildRecordPage(rec) {
   const link = (linkItems.length || camBtn)
     ? '<div style="margin-top:4px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' + linkItems.join('') + camBtn + '</div>'
     : '';
+  const tkId  = parseTKProjectId(rec.dynamicProperties);
+  const tkLine = tkId
+    ? '<div style="margin-top:6px;padding-top:5px;border-top:1px solid #eee;font-size:11px;color:#6b7280;display:flex;align-items:center;gap:5px;">' +
+      '<span title="Traditional Knowledge label">\ud83c\udff7\ufe0f</span>' +
+      '<a href="' + tkProjectUrl(tkId) + '" target="_blank" rel="noopener" style="color:#2a7a58;">Traditional Knowledge label \u2014 view community project \u2197</a>' +
+      '</div>'
+    : '';
   return {
     html: '<div id="' + photoId + '" data-taxon-key="' + (rec.taxonKey||'') + '" data-sci-name="' + (rec.scientificName||'').replace(/"/g,'&quot;') + '" style="margin-bottom:8px;"></div>' +
-          primary + cls + date + source + uncert + link,
+          primary + cls + date + source + uncert + link + tkLine,
     photoId,
     taxonKey: rec.taxonKey,
     scientificName: rec.scientificName || ''
@@ -3117,6 +3139,7 @@ runBtn.addEventListener('click', async () => {
             stateProvince:                 r.stateProvince || null,
             locality:                      r.locality      || null,
             recordedBy:                    Array.isArray(r.recordedBy) ? r.recordedBy.join('; ') : (r.recordedBy || null),
+            dynamicProperties:             r.dynamicProperties || null,
             recordPhoto: (() => {
               const img = (r.media || []).find(m => m.type === 'StillImage' && m.identifier);
               if (!img) return null;
@@ -3404,6 +3427,13 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v2.29</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Traditional Knowledge labels — occurrence popups now show a 🏷️ link to the Local Contexts community project when a record carries a <code>local_contexts_project_id</code> in its dynamic properties</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v2.28</span>
       <span class="changelog-date">May 2026</span>
