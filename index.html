@@ -72,7 +72,13 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
 .dz-sub { font-size: 11px; color: var(--text3); margin-top: 3px; }
 
 .poly-list { margin-top: 0.6rem; display: flex; flex-direction: column; gap: 5px; }
-.poly-item { display: flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: var(--radius); background: var(--green-light); border: 0.5px solid var(--green-mid); font-size: 12px; color: var(--green-dark); }
+.poly-item { display: flex; flex-direction: column; gap: 4px; padding: 5px 8px; border-radius: var(--radius); background: var(--green-light); border: 0.5px solid var(--green-mid); font-size: 12px; color: var(--green-dark); }
+.poly-item-row { display: flex; align-items: center; gap: 6px; width: 100%; }
+.poly-buffer-row { display: flex; align-items: center; gap: 3px; padding-top: 3px; border-top: 0.5px solid var(--green-mid); }
+.poly-buffer-label { font-size: 10px; color: var(--text3); font-weight: 600; flex-shrink: 0; margin-right: 2px; }
+.poly-buf-btn { font-size: 10px; padding: 2px 6px; border-radius: 10px; border: 0.5px solid var(--green-mid); background: transparent; color: var(--green-dark); cursor: pointer; font-family: var(--font-sans); transition: all 0.12s; white-space: nowrap; line-height: 1.4; }
+.poly-buf-btn:hover { background: var(--green-mid); }
+.poly-buf-btn.active { background: var(--green-dark); color: white; border-color: var(--green-dark); }
 .poly-item-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: text; }
 .poly-item-name:hover { text-decoration: underline dotted; }
 .poly-name-input { flex: 1; font-size: 12px; font-family: var(--font-sans); color: var(--green-dark); background: white; border: 1px solid var(--green-mid); border-radius: 4px; padding: 1px 5px; min-width: 0; outline: none; }
@@ -399,7 +405,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v2.85</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v2.86</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -1555,7 +1561,9 @@ function addPolygonSafe(latlngs, label, holes) {
 function removePolygon(id) {
   const idx = polygons.findIndex(p => p.id === id);
   if (idx === -1) return;
-  polyLayer.removeLayer(polygons[idx].layer); polygons.splice(idx, 1); renderPolyList();
+  polyLayer.removeLayer(polygons[idx].layer);
+  if (polygons[idx].bufferLayer) polyLayer.removeLayer(polygons[idx].bufferLayer);
+  polygons.splice(idx, 1); renderPolyList();
   if (polygons.length === 0) { runBtn.disabled = true; clearAllBtn.style.display = 'none'; }
   clearResults();
 }
@@ -1564,25 +1572,38 @@ function renderPolyList() {
   polyEmpty.style.display = polygons.length === 0 ? 'block' : 'none';
   polyList.querySelectorAll('.poly-item').forEach(el => el.remove());
   polygons.forEach(p => {
+    if (p.bufferKm === undefined) p.bufferKm = 0;
     const el = document.createElement('div'); el.className = 'poly-item';
-    el.innerHTML =
+
+    // Top row: name + count + remove
+    const topRow = document.createElement('div'); topRow.className = 'poly-item-row';
+    topRow.innerHTML =
       '<span class="poly-item-name" title="Click to rename">&#10003; ' + p.label + '</span>' +
       '<span class="poly-item-count">' + p.latlngs.length + ' pts</span>' +
       '<span class="poly-remove" data-id="' + p.id + '">&#x2715;</span>';
+    el.appendChild(topRow);
+
+    // Buffer row
+    const bufRow = document.createElement('div'); bufRow.className = 'poly-buffer-row';
+    bufRow.innerHTML = '<span class="poly-buffer-label">Buffer:</span>' +
+      [0,1,2,5,10].map(km => '<button class="poly-buf-btn' + (p.bufferKm === km ? ' active' : '') + '" data-km="' + km + '">' + (km === 0 ? 'None' : km + ' km') + '</button>').join('');
+    bufRow.querySelectorAll('.poly-buf-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        updatePolyBuffer(p, parseInt(btn.dataset.km));
+        bufRow.querySelectorAll('.poly-buf-btn').forEach(b => b.classList.toggle('active', b === btn));
+      });
+    });
+    el.appendChild(bufRow);
 
     // Click name to edit inline
-    const nameSpan = el.querySelector('.poly-item-name');
+    const nameSpan = topRow.querySelector('.poly-item-name');
     nameSpan.addEventListener('click', () => {
       const input = document.createElement('input');
-      input.type = 'text';
-      input.className = 'poly-name-input';
-      input.value = p.label;
-      el.replaceChild(input, nameSpan);
-      input.focus(); input.select();
+      input.type = 'text'; input.className = 'poly-name-input'; input.value = p.label;
+      topRow.replaceChild(input, nameSpan); input.focus(); input.select();
       const commit = () => {
         const val = input.value.trim() || p.label;
         p.label = val;
-        // Update polygon_name on any already-fetched records
         allRecords.forEach(r => { if (r.polygon_name === nameSpan.textContent.replace('✓ ','').trim()) r.polygon_name = val; });
         renderPolyList();
       };
@@ -1590,13 +1611,55 @@ function renderPolyList() {
       input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { input.value = p.label; input.blur(); } });
     });
 
-    el.querySelector('.poly-remove').addEventListener('click', () => removePolygon(p.id));
+    topRow.querySelector('.poly-remove').addEventListener('click', () => removePolygon(p.id));
     polyList.appendChild(el);
   });
 }
 
+// Apply or remove a km buffer on a polygon, update the map ring, store bufferKm
+function updatePolyBuffer(poly, km) {
+  poly.bufferKm = km;
+  // Remove old buffer ring if present
+  if (poly.bufferLayer) { polyLayer.removeLayer(poly.bufferLayer); poly.bufferLayer = null; }
+  if (km > 0) {
+    try {
+      const coords = poly.latlngs.map(ll => {
+        const lat = ll.lat !== undefined ? ll.lat : ll[0];
+        const lng = ll.lng !== undefined ? ll.lng : ll[1];
+        return [lng, lat];
+      });
+      const ring = [...coords];
+      if (ring[0][0] !== ring[ring.length-1][0] || ring[0][1] !== ring[ring.length-1][1]) ring.push(ring[0]);
+      const geojson = { type: 'Feature', geometry: { type: 'Polygon', coordinates: [ring] } };
+      const buffered = turf.buffer(geojson, km, { units: 'kilometers' });
+      const bCoords  = buffered.geometry.coordinates[0].map(c => [c[1], c[0]]); // [lat,lng] for Leaflet
+      const colour   = poly.layer ? poly.layer.options.color : '#C8611A';
+      poly.bufferLayer = L.polygon(bCoords, { color: colour, fillColor: colour, fillOpacity: 0.05, weight: 1.5, dashArray: '6 4' });
+      polyLayer.addLayer(poly.bufferLayer);
+    } catch(e) { console.warn('Buffer failed:', e); }
+  }
+}
+
+// Return WKT to use for GBIF query — applies buffer if set
+function getPolyWKT(poly) {
+  if (!poly.bufferKm || poly.bufferKm === 0) return poly.wkt;
+  try {
+    const coords = poly.latlngs.map(ll => {
+      const lat = ll.lat !== undefined ? ll.lat : ll[0];
+      const lng = ll.lng !== undefined ? ll.lng : ll[1];
+      return [lng, lat];
+    });
+    const ring = [...coords];
+    if (ring[0][0] !== ring[ring.length-1][0] || ring[0][1] !== ring[ring.length-1][1]) ring.push(ring[0]);
+    const geojson  = { type: 'Feature', geometry: { type: 'Polygon', coordinates: [ring] } };
+    const buffered = turf.buffer(geojson, poly.bufferKm, { units: 'kilometers' });
+    const bRing    = buffered.geometry.coordinates[0];
+    return 'POLYGON((' + bRing.map(c => c[0].toFixed(6) + ' ' + c[1].toFixed(6)).join(',') + '))';
+  } catch(e) { return poly.wkt; }
+}
+
 clearAllBtn.addEventListener('click', () => {
-  polygons.forEach(p => polyLayer.removeLayer(p.layer)); polygons = []; nextPolyId = 0;
+  polygons.forEach(p => { polyLayer.removeLayer(p.layer); if (p.bufferLayer) polyLayer.removeLayer(p.bufferLayer); }); polygons = []; nextPolyId = 0;
   refLayers.forEach(l => polyLayer.removeLayer(l)); refLayers = [];
   clipTurfPolygons = null;
   renderPolyList(); runBtn.disabled = true; clearAllBtn.style.display = 'none'; clearResults();
@@ -3300,7 +3363,7 @@ runBtn.addEventListener('click', async () => {
     const poly = polygons[pi];
     const polyLabel = polygons.length > 1 ? ' (polygon ' + (pi+1) + '/' + polygons.length + ')' : '';
 
-    const baseParams = [['geometry', poly.wkt], ['hasCoordinate', 'true'], ['limit', '300']];
+    const baseParams = [['geometry', getPolyWKT(poly)], ['hasCoordinate', 'true'], ['limit', '300']];
     if (dateFrom && dateTo) baseParams.push(['eventDate', dateFrom + ',' + dateTo]);
     if (document.getElementById('excludeEdna').checked) {
       ['HUMAN_OBSERVATION','MACHINE_OBSERVATION','PRESERVED_SPECIMEN','LIVING_SPECIMEN',
