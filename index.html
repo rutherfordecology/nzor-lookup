@@ -141,14 +141,12 @@ header { background: var(--green-dark); color: white; padding: 0 1.5rem; display
 .legend-item { display: flex; align-items: center; gap: 7px; margin-bottom: 3px; color: var(--text2); font-size: 11px; }
 .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 
-.checklist-panel { position: absolute; top: 0; right: 0; width: 290px; height: 100%; background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; z-index: 900; transform: translateX(100%); transition: transform 0.25s ease; box-shadow: -4px 0 16px rgba(0,0,0,0.08); }
+.checklist-panel { position: absolute; top: 0; right: 0; width: 290px; height: calc(100% - 22px); background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; z-index: 900; transform: translateX(100%); transition: transform 0.25s ease; box-shadow: -4px 0 16px rgba(0,0,0,0.08); overflow: visible; }
 .checklist-panel.open { transform: translateX(0); }
 .cl-header { display: flex; align-items: center; justify-content: space-between; padding: 0.85rem 1rem; border-bottom: 1px solid var(--border); flex-shrink: 0; background: var(--surface2); }
 .cl-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text3); }
-.cl-close { cursor: pointer; font-size: 20px; color: var(--text3); line-height: 1; padding: 2px 6px; border-radius: 4px; border: none; background: none; }
-.cl-close:hover { color: var(--text); background: var(--surface2); }
-#clOpenTab { position: absolute; right: 0; top: 50%; transform: translateY(-50%) rotate(180deg); z-index: 901; background: var(--surface); border: 1px solid var(--border); border-right: none; border-radius: 6px 0 0 6px; padding: 16px 6px; cursor: pointer; display: none; box-shadow: -3px 0 10px rgba(0,0,0,0.10); writing-mode: vertical-rl; font-size: 11px; font-weight: 600; color: var(--text2); letter-spacing: 0.06em; text-transform: uppercase; font-family: var(--font-sans); white-space: nowrap; }
-#clOpenTab:hover { background: var(--green-light); color: var(--green-dark); }
+#clToggleHandle { position: absolute; left: -26px; top: 50%; transform: translateY(-50%); width: 26px; height: 64px; background: var(--surface); border: 1px solid var(--border); border-right: none; border-radius: 6px 0 0 6px; cursor: pointer; box-shadow: -3px 0 8px rgba(0,0,0,0.10); display: none; align-items: center; justify-content: center; padding: 0; font-size: 16px; color: var(--text2); z-index: 901; transition: background 0.12s, color 0.12s; }
+#clToggleHandle:hover { background: var(--green-light); color: var(--green-dark); }
 .cl-selected-info { padding: 6px 10px; font-size: 11px; background: var(--green-light); color: var(--green-dark); border-bottom: 1px solid var(--green-mid); display: none; }
 .cl-clear-sel { cursor: pointer; text-decoration: underline; margin-left: 6px; }
 .cl-search { padding: 8px 10px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
@@ -240,8 +238,9 @@ html, body { max-width: 100vw; overflow-x: hidden; }
   #map-wrap { order: 1; height: 58vh; min-height: 280px; position: relative; width: 100%; max-width: 100vw; }
   .sidebar { order: 2; border-right: none; border-top: 1px solid var(--border); overflow-y: visible; max-width: 100vw; }
   #map { position: absolute; inset: 0; }
-  .checklist-panel { width: 100%; height: 380px; top: auto; bottom: 0; transform: translateY(100%); }
+  .checklist-panel { width: 100%; height: 370px; top: auto; bottom: 0; transform: translateY(100%); overflow: visible; }
   .checklist-panel.open { transform: translateY(0); }
+  #clToggleHandle { left: 50%; top: -26px; transform: translateX(-50%); width: 64px; height: 26px; border-radius: 6px 6px 0 0; border-bottom: none; border-right: 1px solid var(--border); writing-mode: horizontal-tb; font-size: 14px; }
   .header-right { display: none; }
   .metrics { grid-template-columns: repeat(3, 1fr); }
   /* Hide Leaflet's built-in draw action buttons — we provide touch-safe replacements */
@@ -400,7 +399,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v2.80</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v2.81</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -611,14 +610,12 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <button id="cancelDrawBtn">&#x2715; Cancel</button>
     </div>
 
-    <button id="clOpenTab" title="Show species checklist" onclick="toggleChecklist()">Checklist</button>
-
     <div class="checklist-panel" id="checklistPanel">
+      <button id="clToggleHandle" onclick="toggleChecklist()" title="Toggle checklist">&#x203A;</button>
       <div class="cl-header">
         <span class="cl-title">Species checklist</span>
-        <div style="display:flex;align-items:center;gap:6px;margin-right:36px;">
+        <div style="display:flex;align-items:center;gap:6px;">
           <button class="cl-nztcs-btn" id="clNztcsBtn" title="Click to activate NZTCS conservation status" style="display:none;">🔒 NZTCS</button>
-<button class="cl-close" id="clCloseBtn" title="Minimise checklist">&#x203A;</button>
         </div>
       </div>
       <div class="cl-selected-info" id="clSelectedInfo">
@@ -1209,7 +1206,6 @@ function collapseSetupSections() {
 }
 
 document.getElementById('clSearchInput').addEventListener('input', filterChecklistSearch);
-document.getElementById('clCloseBtn').addEventListener('click', () => toggleChecklist());
 document.getElementById('clClearSel').addEventListener('click', () => clearSpeciesSelection());
 
 // Helpers
@@ -1413,7 +1409,7 @@ function clearResults() {
   statusBar.style.display = 'none'; progressWrap.style.display = 'none';
   progressTrack.querySelectorAll('.progress-footprint').forEach(fp => fp.classList.remove('visible'));
   checklistPanel.classList.remove('open');
-  document.getElementById('clOpenTab').style.display = 'none';
+  _showChecklistHandle(false);
   clScroll.innerHTML = ''; clSelectedInfo.style.display = 'none';
   const _clf = document.getElementById('clFooter'); if (_clf) _clf.style.display = 'none';
   if (clusterLayer) { map.removeLayer(clusterLayer); clusterLayer = null; }
@@ -3047,7 +3043,12 @@ function clearSpeciesSelection() {
 // Checklist
 function toggleChecklist() {
   const isOpen = checklistPanel.classList.toggle('open');
-  document.getElementById('clOpenTab').style.display = isOpen ? 'none' : 'block';
+  const handle = document.getElementById('clToggleHandle');
+  handle.innerHTML = isOpen ? '&#x203A;' : '&#x2039;';  // › when open (click to close), ‹ when closed (click to open)
+}
+function _showChecklistHandle(show) {
+  const handle = document.getElementById('clToggleHandle');
+  if (handle) handle.style.display = show ? 'flex' : 'none';
 }
 
 function filterChecklistSearch() {
@@ -3505,7 +3506,8 @@ runBtn.addEventListener('click', async () => {
   buildFilterChips(displayRecords);
   buildChecklist(displayRecords);
   checklistPanel.classList.add('open');
-  document.getElementById('clOpenTab').style.display = 'none';
+  const _h = document.getElementById('clToggleHandle');
+  if (_h) { _h.style.display = 'flex'; _h.innerHTML = '&#x203A;'; }
   renderPoints(displayRecords);
   setTimeout(() => { map.invalidateSize(); }, 100);
   csvData = buildCSV(displayRecords);
