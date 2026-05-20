@@ -399,7 +399,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v2.82</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v2.83</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -484,7 +484,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
             <div class="taxon-group-label">Vertebrates</div>
             <label class="taxon-item"><input type="checkbox" value="212" class="taxon-cb"> Aves (birds)</label>
             <label class="taxon-item"><input type="checkbox" value="359" class="taxon-cb"> Mammalia</label>
-            <label class="taxon-item"><input type="checkbox" value="358" class="taxon-cb"> Reptilia</label>
+            <label class="taxon-item"><input type="checkbox" value="reptilia" class="taxon-cb"> Reptilia</label>
             <label class="taxon-item"><input type="checkbox" value="131" class="taxon-cb"> Amphibia</label>
             <label class="taxon-item"><input type="checkbox" value="fish" class="taxon-cb"> Fish</label>
             <div class="taxon-group-label">Invertebrates</div>
@@ -802,7 +802,7 @@ const CSV_FIELDS = ['gbifID','eventDate','year','month','day','scientificName','
 // Maps taxon checkbox values to the getTaxonGroup() strings they correspond to.
 // Used to post-filter downloaded records so non-target taxa don't slip through.
 const CB_TO_GROUP = {
-  '212': 'Aves', '359': 'Mammalia', '358': 'Reptilia', '131': 'Amphibia',
+  '212': 'Aves', '359': 'Mammalia', 'reptilia': 'Reptilia', '131': 'Amphibia',
   'fish': 'Fish',
   '216': 'Insecta', '367': 'Arachnida', 'crustacea': 'Crustacea',
   '52': 'Mollusca', '50': 'Echinodermata', '43': 'Cnidaria', '42': 'Annelida',
@@ -3263,6 +3263,7 @@ function buildTaxonParams(keys) {
   const params = [];
   keys.forEach(key => {
     if (key === 'fish')           { params.push(['taxonKey', '44']); } // Chordata, post-filter to fish orders
+    else if (key === 'reptilia')    { ['11592253','11418114','11493978','11569602'].forEach(k => params.push(['taxonKey', k])); } // Squamata, Testudines, Crocodylia, Sphenodontia (GBIF retired Reptilia key 358 in CoL 2022)
     else if (key === 'crustacea')   { ['229','203','284','367'].forEach(k => params.push(['taxonKey', k])); }
     else if (key === 'angiosperms') { ['220','162846864'].forEach(k => params.push(['taxonKey', k])); }
     else if (key === 'algae')       { ['4','3241496','3153'].forEach(k => params.push(['taxonKey', k])); }
@@ -3723,6 +3724,13 @@ document.getElementById('dlChecklistBtn').addEventListener('click', () => {
     <button class="changelog-close" id="changelogClose">&#x2715;</button>
   </div>
   <div class="changelog-scroll" id="changelogScroll">
+    <div class="changelog-version">
+      <span class="changelog-version-tag">v2.83</span>
+      <span class="changelog-date">May 2026</span>
+      <ul>
+        <li>Fixed Reptilia filter — GBIF retired the Reptilia taxon key (358) in their 2022 Catalogue of Life update; now queries Squamata, Testudines, Crocodylia and Sphenodontia (tuatara) directly so geckos, skinks and tuatara come through correctly</li>
+      </ul>
+    </div>
     <div class="changelog-version">
       <span class="changelog-version-tag">v2.78</span>
       <span class="changelog-date">May 2026</span>
