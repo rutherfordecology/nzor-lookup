@@ -136,6 +136,7 @@
     .cat-non-resident-native      { background:#e3f2fd; color:#1565c0; }
     .cat-taxonomically-indistinct { background:#f5f5f5; color:#9e9e9e; }
     .cat-not-assessed             { background:#f5f5f5; color:#9e9e9e; }
+    .cat-pest-plant               { background:#fde8e8; color:#b71c1c; border:1px solid #f5bcbc; }
 
     /* ── Loading / messages ─────────────────────────────── */
     .spinner {
@@ -229,7 +230,7 @@
 
 <header>
   <div>
-    <h1>NZ Species Lookup <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.4</span></h1>
+    <h1>NZ Species Lookup <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.6</span></h1>
     <p>NZOR names · NZTCS conservation status</p>
   </div>
   <div id="dot" class="status-dot loading" title="Loading NZTCS data…"></div>
@@ -252,6 +253,7 @@
 const NZOR = 'https://data.nzor.org.nz/v1';
 
 let nztcs     = null;   // nztcs_slim.json: lowercase-name → {s,c,y,...}
+let nppa      = null;   // nppa.json: Set of lowercase scientific names
 let nzorIndex = [];     // sorted search index built from nzor_names.json
 let activeIdx = -1;
 let allItems  = [];
@@ -279,6 +281,11 @@ function nztcsFor(...names) {
   for (const n of names) { const h = nztcs[norm(n)]; if (h) return h; }
   return null;
 }
+function isPestPlant(...names) {
+  if (!nppa) return false;
+  for (const n of names) { if (n && nppa.has(norm(n))) return true; }
+  return false;
+}
 
 // ── Load data ────────────────────────────────────────────────────────────────
 const dot = document.getElementById('dot');
@@ -287,11 +294,13 @@ const weekStamp = Math.floor(Date.now() / 6048e5);
 Promise.all([
   fetch(`nztcs_slim.json?v=${weekStamp}`).then(r => r.json()),
   fetch(`nzor_names.json?v=${weekStamp}`).then(r => r.json()),
-]).then(([nztcsData, nzorData]) => {
+  fetch(`nppa.json?v=${weekStamp}`).then(r => r.json()),
+]).then(([nztcsData, nzorData, nppaData]) => {
   nztcs = nztcsData;
+  nppa  = new Set(nppaData);
   buildIndex(nzorData);
   dot.className = 'status-dot';
-  dot.title = `NZOR: ${nzorIndex.length.toLocaleString()} names · NZTCS: ${Object.keys(nztcsData).length.toLocaleString()} entries`;
+  dot.title = `NZOR: ${nzorIndex.length.toLocaleString()} names · NZTCS: ${Object.keys(nztcsData).length.toLocaleString()} entries · NPPA: ${nppa.size} pest plants`;
 }).catch(() => {
   dot.className = 'status-dot error';
   dot.title = 'Data failed to load';
@@ -364,7 +373,8 @@ function renderDropdown(results) {
     const isPref   = !isVernac && !isSyn;
 
     // NZTCS badge: for vernacular use linked sci name, for synonym use accepted name
-    const entry = nztcsFor(item.sci, item.acc, item.key);
+    const entry   = nztcsFor(item.sci, item.acc, item.key);
+    const isPest  = isPestPlant(item.sci, item.acc, item.key);
 
     // Name display
     const dispName = item.n || capFirst(item.key);
@@ -382,6 +392,7 @@ function renderDropdown(results) {
     html += `<div class="suggestion" data-i="${allItems.length}" role="option">
       <span class="sname">${nameHtml}</span>
       ${secHtml}${typeTag}
+      ${isPest ? `<span class="badge cat-pest-plant">Pest plant</span>` : ''}
       ${badgeHtml(entry)}
     </div>`;
     allItems.push(item);
@@ -453,13 +464,20 @@ async function pick(i) {
 
 // ── Detail — NZOR result ──────────────────────────────────────────────────────
 function showDetail(n, vernacularName) {
-  const isSyn = n.acceptedName?.nameId && n.nameId !== n.acceptedName.nameId;
-  const entry = nztcsFor(n.partialName, n.acceptedName?.partialName);
+  const isSyn  = n.acceptedName?.nameId && n.nameId !== n.acceptedName.nameId;
+  const entry  = nztcsFor(n.partialName, n.acceptedName?.partialName);
+  const isPest = isPestPlant(n.partialName, n.acceptedName?.partialName);
 
   const s = (n.status || '').toLowerCase();
   const statusCls = s.includes('current') ? 'status-current'
     : s.includes('synonym') ? 'status-synonym'
     : s.includes('misapplied') ? 'status-misapplied' : '';
+
+  const nzBio  = (n.biostatuses || []).find(b => b.geoRegion === 'New Zealand' || b.GeoRegion === 'New Zealand');
+  const origin = nzBio?.origin || nzBio?.Origin || null;
+  const originCls = origin === 'Endemic' ? 'status-current'
+    : origin === 'Native' ? 'status-current'
+    : origin === 'Exotic' ? 'status-synonym' : '';
 
   const hier = (n.classificationHierarchy || [])
     .filter(h => h.rank !== 'none' && h.partialName !== 'ROOT')
@@ -478,10 +496,12 @@ function showDetail(n, vernacularName) {
     <div class="detail-meta">
       ${n.rank    ? `<span class="pill">${escHtml(n.rank)}</span>` : ''}
       ${n.status  ? `<span class="pill ${statusCls}">${escHtml(n.status)}</span>` : ''}
+      ${origin    ? `<span class="pill ${originCls}">${escHtml(origin)}</span>` : ''}
       ${n.governingCode ? `<span class="pill">${escHtml(n.governingCode)}</span>` : ''}
     </div>
     ${acceptedBlock}
     ${vernacRow}
+    ${isPest ? `<div class="nztcs-box cat-pest-plant" style="margin-top:.75rem"><div class="nztcs-header"><span class="nztcs-label">NPPA</span></div><div class="nztcs-status">Pest plant</div><div class="nztcs-cat">National Pest Plant Accord — banned from sale, propagation &amp; distribution</div></div>` : ''}
     ${hier ? `<div class="dl-title">Classification</div><div class="hierarchy">${hier}</div>` : ''}
     ${nztcsBlock(entry)}
     <a class="nzor-link" href="https://www.nzor.org.nz/names/${n.nameId}" target="_blank" rel="noopener">
@@ -496,6 +516,7 @@ function showLocalDetail(item) {
   const isSyn    = !!item.acc;
   const dispName = item.n || capFirst(item.key);
   const entry    = nztcsFor(item.sci, item.acc, item.key);
+  const isPest   = isPestPlant(item.sci, item.acc, item.key);
 
   const secBlock = isVernac && item.sci
     ? `<div class="accepted-row" style="border-color:#6ab0d4">Vernacular name for <strong>${escHtml(item.sci)}</strong></div>`
@@ -510,6 +531,7 @@ function showLocalDetail(item) {
       ${isSyn ? '<span class="pill status-synonym">Synonym</span>' : ''}
     </div>
     ${secBlock}
+    ${isPest ? `<div class="nztcs-box cat-pest-plant" style="margin-top:.75rem"><div class="nztcs-header"><span class="nztcs-label">NPPA</span></div><div class="nztcs-status">Pest plant</div><div class="nztcs-cat">National Pest Plant Accord — banned from sale, propagation &amp; distribution</div></div>` : ''}
     ${nztcsBlock(entry)}
     ${item.id ? `<a class="nzor-link" href="https://www.nzor.org.nz/names/${item.id}" target="_blank" rel="noopener">View on NZOR ↗</a>` : ''}`;
   detail.hidden = false;
