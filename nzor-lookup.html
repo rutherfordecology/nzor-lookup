@@ -37,7 +37,9 @@
       max-width: 780px;
       margin: 2.5rem auto;
       padding: 0 1.25rem;
+      transition: max-width .2s;
     }
+    main.wide { max-width: 1100px; }
 
     /* ── Search ─────────────────────────────────────────── */
     .search-wrap {
@@ -300,7 +302,7 @@
 
 <header>
   <div>
-    <h1>NZ Species Lookup <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.11</span></h1>
+    <h1>NZ Species Lookup <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.12</span></h1>
     <p>NZOR names · NZTCS conservation status</p>
   </div>
   <div id="dot" class="status-dot loading" title="Loading NZTCS data…"></div>
@@ -650,6 +652,7 @@ function switchTab(tab) {
   document.getElementById('batch-panel').classList.toggle('visible', tab === 'batch');
   document.getElementById('tab-search').classList.toggle('active', tab === 'search');
   document.getElementById('tab-batch').classList.toggle('active', tab === 'batch');
+  document.querySelector('main').classList.toggle('wide', tab === 'batch');
 }
 
 // ── Drag & drop ───────────────────────────────────────────────────────────────
