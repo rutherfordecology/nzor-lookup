@@ -405,7 +405,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <img src="occurd-logo.png" alt="occurd." style="height:44px;width:auto;filter:brightness(0) invert(1);opacity:0.95;">
     </div>
     <span style="font-size:12px;font-weight:300;color:rgba(255,255,255,0.45);">by</span>
-    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v2.89</span></h1>
+    <h1><a href="https://sites.google.com/view/rutherford-ecology/home" target="_blank"><strong>Rutherford</strong> <em>ecology</em></a> <span style="font-size:10px;font-weight:400;color:rgba(255,255,255,0.35);letter-spacing:0.04em;">v2.90</span></h1>
   </div>
   <div class="header-right" style="display:flex;align-items:center;gap:8px;">
     <button class="about-btn" id="aboutBtn">&#9432; About</button>
@@ -726,7 +726,10 @@ html, body { max-width: 100vw; overflow-x: hidden; }
       <p style="margin:0 0 1rem;">Records are assigned to groups (Birds, Mammals, Reptiles, Fish, etc.) using the <code>class</code> and <code>order</code> fields returned by GBIF. Fish detection uses a two-stage approach: first a whitelist of ~65 fish orders (covering traditional groupings plus modern splits from Betancur-R 2017, including <em>Gobiiformes</em>, <em>Carangiformes</em>, <em>Labriformes</em> and others absent from older classifications), then a fallback check on the <code>class</code> field (<em>Actinopterygii</em>, <em>Chondrichthyes</em>, <em>Myxini</em>, etc.) for records where the order is blank or non-standard. Fish are queried via GBIF's Chordata taxon key and filtered client-side, so the "records loaded" count before filtering will typically exceed the final fish count. Records that can't be matched to any group fall into "Other".</p>
 
       <p style="font-weight:600;color:var(--text);margin:0 0 0.25rem;">Species photos</p>
-      <p style="margin:0 0 0;">Photos are sourced from the <a href="https://www.inaturalist.org/pages/api+reference" target="_blank" style="color:var(--green-dark);">iNaturalist Taxa API</a>. Up to 8 CC-licensed images are fetched per species from iNaturalist's curated <code>taxon_photos</code> list. If none are available, the app falls back to GBIF occurrence media. All-rights-reserved images are excluded.</p>
+      <p style="margin:0 0 1rem;">Photos are sourced from the <a href="https://www.inaturalist.org/pages/api+reference" target="_blank" style="color:var(--green-dark);">iNaturalist Taxa API</a>. Up to 8 CC-licensed images are fetched per species from iNaturalist's curated <code>taxon_photos</code> list. If none are available, the app falls back to GBIF occurrence media. All-rights-reserved images are excluded.</p>
+
+      <p style="font-weight:600;color:var(--text);margin:0 0 0.25rem;" id="nerdsGeoprivacy">iNaturalist geoprivacy</p>
+      <p style="margin:0 0 0;">iNaturalist obscures the exact location of threatened and user-obscured species by snapping records to a random position within a 0.2° × 0.2° grid square. At the equator this box forms a near-perfect square of 22.2 km × 22.2 km, masking the observation across 493 square kilometres. As you move away from the equator, the earth narrows, compressing the box's width while the height stays fixed at 22.2 km. By 45° North or South — roughly cutting through the middle of New Zealand's South Island or Minneapolis — the box narrows to 15.7 km wide, shrinking the total hidden area to about 349 square kilometres. The coordinate shown for an obscured record is the centre of that grid square, not the true observation location. This means rare species whose true location falls inside your polygon may not appear in results, and records may appear in results even though the true observation was outside your polygon.</p>
 
     </div>
   </div>
@@ -739,10 +742,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
     <p style="margin-bottom:0.8rem;">This feature displays NZ Threat Classification System conservation status badges in the species checklist.</p>
     <p style="margin-bottom:0.4rem;">Due to inconsistencies in taxonomic nomenclature between GBIF and NZTCS, <strong>some badges may be incorrect</strong>. Name changes, rank disagreements, and subspecies mismatches can all cause errors.</p>
     <p style="margin-bottom:0.4rem;">iNaturalist obscures the exact location of threatened and user-obscured species, placing the record anywhere within a <strong>0.2° × 0.2° grid square</strong>. This means rare species <em>inside</em> your polygon may not appear in results, and some records may appear despite the true observation being <em>outside</em> your polygon.</p>
-    <details style="margin-bottom:0.8rem;">
-      <summary style="color:var(--green-dark);font-weight:600;cursor:pointer;font-size:12px;list-style:none;padding:2px 0;">Notes for nerds ▾</summary>
-      <p style="margin-top:0.5rem;margin-bottom:0;background:var(--surface2);border-radius:6px;padding:8px 10px;font-size:12px;color:var(--text2);line-height:1.6;">At the equator, iNaturalist's 0.2° × 0.2° geoprivacy box forms a near-perfect square of 22.2 km × 22.2 km, masking the observation across 493 square kilometres. As you move away from the equator, the earth narrows, compressing the box's width while the height stays fixed at 22.2 km. By 45° North or South — roughly cutting through the middle of New Zealand's South Island or Minneapolis — the box narrows to 15.7 km wide, shrinking the total hidden area to about 349 square kilometres.</p>
-    </details>
+    <p style="margin-bottom:0.8rem;"><a href="#" id="nztcsNerdsLink" style="color:var(--green-dark);font-size:12px;font-weight:600;text-decoration:none;">📋 Notes for nerds →</a></p>
     <p style="margin-bottom:1rem;">Please check findings carefully and <a href="mailto:rutherfordecology@gmail.com" style="color:var(--green-dark);">let us know</a> if anything appears out of order.</p>
     <div class="modal-btns">
       <button class="modal-btn primary" id="nztcsBetaAcceptBtn">I understand — continue</button>
@@ -2029,6 +2029,16 @@ document.getElementById('nerdsClose').addEventListener('click', () => {
 });
 document.getElementById('nerdsModal').addEventListener('click', e => {
   if (e.target === document.getElementById('nerdsModal')) document.getElementById('nerdsModal').classList.remove('open');
+});
+document.getElementById('nztcsNerdsLink').addEventListener('click', e => {
+  e.preventDefault();
+  document.getElementById('nztcsBetaModal').classList.remove('open');
+  document.getElementById('nerdsModal').classList.add('open');
+  setTimeout(() => {
+    const target = document.getElementById('nerdsGeoprivacy');
+    const scroller = document.querySelector('#nerdsModal .modal');
+    if (target && scroller) scroller.scrollTop = target.offsetTop - 16;
+  }, 50);
 });
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
