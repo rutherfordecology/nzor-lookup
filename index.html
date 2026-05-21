@@ -302,7 +302,7 @@
 
 <header>
   <div>
-    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.24</span></h1>
+    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.25</span></h1>
     <p>NZOR names · NZTCS conservation status</p>
   </div>
   <div id="dot" class="status-dot loading" title="Loading NZTCS data…"></div>
@@ -331,7 +331,7 @@
       <p><strong>Drag &amp; drop a CSV or text file here</strong></p>
       <p>One name per row — any column, any name type (scientific, common, Māori, synonym)</p>
     </div>
-    <textarea id="batch-paste" placeholder="Or paste names here, one per line…"></textarea>
+    <textarea id="batch-paste" placeholder="Or paste names here — one per line or comma-separated…"></textarea>
     <div class="batch-actions">
       <button class="btn-primary" id="batch-run" onclick="runBatch()">Match names</button>
       <button class="btn-secondary" id="batch-dl" onclick="downloadBatchCSV()" disabled>Download CSV</button>
@@ -831,13 +831,22 @@ function runBatch() {
   const raw = batchPaste.value.trim();
   if (!raw) return;
 
-  // Parse: CSV (take first non-empty cell per row) or plain text (one name per line)
+  // Parse: CSV (take first non-empty cell per row), one name per line, or comma-separated names
   const lines = raw.split(/\r?\n/).filter(l => l.trim());
-  const names = lines.map(l => {
-    // Try CSV split — take first non-empty cell
-    const cells = l.split(',').map(c => c.replace(/^"|"$/g, '').trim());
-    return cells.find(c => c) || '';
-  }).filter(Boolean);
+  const names = [];
+  for (const l of lines) {
+    if (l.includes('"')) {
+      // Quoted CSV row — take first non-empty cell only
+      const first = l.split(',').map(c => c.replace(/^"|"$/g, '').trim()).find(c => c);
+      if (first) names.push(first);
+    } else {
+      // Plain text — split on commas, each part is a separate name
+      for (const part of l.split(',')) {
+        const name = part.trim();
+        if (name) names.push(name);
+      }
+    }
+  }
 
   batchResults = names.map(batchMatch).filter(Boolean);
 
