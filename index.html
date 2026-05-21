@@ -302,7 +302,7 @@
 
 <header>
   <div>
-    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.17</span></h1>
+    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.18</span></h1>
     <p>NZOR names · NZTCS conservation status</p>
   </div>
   <div id="dot" class="status-dot loading" title="Loading NZTCS data…"></div>
@@ -444,8 +444,7 @@ function nzorSearch(q) {
   for (const item of nzorIndex) {
     if (item.kd.startsWith(qd)) {
       prefix.push(item);
-      if (prefix.length >= 12) break;
-    } else if (contains.length < 5 && item.kd.includes(qd)) {
+    } else if (contains.length < 10 && item.kd.includes(qd)) {
       contains.push(item);
     }
   }
