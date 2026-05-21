@@ -230,7 +230,7 @@
 
 <header>
   <div>
-    <h1>NZ Species Lookup <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.9</span></h1>
+    <h1>NZ Species Lookup <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.10</span></h1>
     <p>NZOR names · NZTCS conservation status</p>
   </div>
   <div id="dot" class="status-dot loading" title="Loading NZTCS data…"></div>
@@ -443,9 +443,7 @@ async function pick(i) {
   const fetchId = async (id) => {
     const r = await fetch(`${NZOR}/names/${id}`, { headers: { Accept: 'application/json' } });
     const d = await r.json();
-    const n = d.names?.[0] ?? null;
-    if (n) console.log('NZOR biostatuses:', JSON.stringify(n.biostatuses ?? n.Biostatuses ?? 'NOT FOUND'));
-    return n;
+    return d.names?.[0] ?? null;
   };
 
   try {
@@ -475,11 +473,8 @@ function showDetail(n, vernacularName) {
     : s.includes('synonym') ? 'status-synonym'
     : s.includes('misapplied') ? 'status-misapplied' : '';
 
-  const nzBio  = (n.biostatuses || n.Biostatuses || []).find(b => {
-    const r = b.GeoRegion?.Value ?? b.GeoRegion ?? b.geoRegion?.Value ?? b.geoRegion ?? '';
-    return r === 'New Zealand';
-  });
-  const origin = nzBio ? (nzBio.Origin?.Value ?? nzBio.Origin ?? nzBio.origin?.Value ?? nzBio.origin ?? null) : null;
+  const nzBio  = (n.biostatuses || []).find(b => [].concat(b.geoRegion ?? []).includes('New Zealand'));
+  const origin = nzBio ? ([].concat(nzBio.origin ?? [])[0] ?? null) : null;
   const originCls = origin === 'Endemic' ? 'status-current'
     : origin === 'Native' ? 'status-current'
     : origin === 'Exotic' ? 'status-synonym' : '';
