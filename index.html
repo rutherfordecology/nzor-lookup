@@ -393,7 +393,7 @@
 
 <header>
   <div>
-    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.39</span></h1>
+    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.40</span></h1>
     <p>NZOR names · NZTCS conservation status</p>
   </div>
   <div id="dot" class="status-dot loading" title="Loading NZTCS data…"></div>
@@ -919,7 +919,7 @@ function showDetail(n, vernacularName) {
   const acceptedBlock = isSyn ? `
     <div class="accepted-row">Synonym of <strong>${escHtml(n.acceptedName?.partialName || '')}</strong></div>` : '';
 
-  const vernacRow = vernacularName
+  const vernacRow = vernacularName && !vernacularName.toLowerCase().includes('niggerhead')
     ? `<div class="accepted-row" style="border-color:#6ab0d4">Also known as <strong>${escHtml(vernacularName)}</strong></div>` : '';
 
   detail.innerHTML = `
