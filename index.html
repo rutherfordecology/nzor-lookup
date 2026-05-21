@@ -376,7 +376,7 @@
 
 <header>
   <div>
-    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.35</span></h1>
+    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.36</span></h1>
     <p>NZOR names · NZTCS conservation status</p>
   </div>
   <div id="dot" class="status-dot loading" title="Loading NZTCS data…"></div>
@@ -451,6 +451,7 @@
     <div class="batch-actions">
       <button class="btn-primary" id="batch-run" onclick="runBatch()">Match names</button>
       <button class="btn-secondary" id="batch-dl" onclick="downloadBatchCSV()" disabled>Download CSV</button>
+      <button class="btn-secondary" id="batch-dl-nvs" onclick="downloadNVSTemplate()" disabled>Download NVS template</button>
       <span class="batch-count" id="batch-count"></span>
     </div>
     <div id="batch-results"></div>
@@ -1142,6 +1143,7 @@ function runBatch() {
   document.getElementById('batch-count').textContent =
     `${matched} of ${batchResults.length} matched`;
   document.getElementById('batch-dl').disabled = matched === 0;
+  document.getElementById('batch-dl-nvs').disabled = matched === 0;
 }
 
 function renderBatchTable(results) {
@@ -1180,6 +1182,22 @@ function renderBatchTable(results) {
 }
 
 // ── Download CSV ──────────────────────────────────────────────────────────────
+function downloadNVSTemplate() {
+  const nvsColumns = ['blockcode','observation_method','abundance_class','observation_status','scientificname','observer','browsed','reqmgtnotes','easting','northing','plantednotes','notes','indicator','edge','planted','emergent','reqmgt','groundcover','epiphyte','understorey','canopy','keyinterest','dominantspecies','nativeinED','mapped'];
+  const sciIdx = nvsColumns.indexOf('scientificname');
+  const rows = [nvsColumns, ...batchResults.map(r => {
+    const row = nvsColumns.map(() => '');
+    if (r.matched && !r._ambiguous) row[sciIdx] = r.sci ?? '';
+    else row[sciIdx] = 'XXXUnmatchedXXX ' + r.input;
+    return row;
+  })].map(row => row.map(c => `"${String(c).replace(/"/g,'""')}"`).join(','));
+  const blob = new Blob(['﻿' + rows.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'nvs-template.csv';
+  a.click();
+}
+
 function downloadBatchCSV() {
   const header = ['Input name','Scientific name','Common name','Māori name','NZTCS status','NZTCS category','Year','Pest plant (NPPA)','Origin'];
   const csvRows = [header, ...batchResults.map(r => {
