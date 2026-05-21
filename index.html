@@ -361,6 +361,7 @@
     .subsp-best      { outline:2px solid currentColor; outline-offset:-2px; }
     .subsp-best-tag  { font-size:.8rem; font-weight:700; letter-spacing:.02em; opacity:.9; margin-bottom:.4rem; }
     .subsp-best-note { font-size:.75rem; color:#888; margin-left:.3rem; }
+    .nvs-tag { background:#e8f4f8; color:#1a5276; border:1px solid #aed6f1; }
     .results-table em { font-style:italic; }
   </style>
 </head>
@@ -368,7 +369,7 @@
 
 <header>
   <div>
-    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.30</span></h1>
+    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.31</span></h1>
     <p>NZOR names · NZTCS conservation status</p>
   </div>
   <div id="dot" class="status-dot loading" title="Loading NZTCS data…"></div>
@@ -456,6 +457,7 @@ let nztcsSubspecies  = null;   // "genus species" → [all subspecies sorted mos
 let nppa           = null;   // nppa.json: Set of lowercase scientific names
 let nzorIndex      = [];     // sorted search index built from nzor_names.json
 let ambiguousNames = null;   // vernacular key → [{sci, id?}] when 2+ species share the name
+let nvsData        = null;   // nvs.json: lowercase 6-letter code → {sci, pref?, prefSci?}
 let activeIdx = -1;
 let allItems  = [];
 let debounce;
@@ -528,7 +530,9 @@ Promise.all([
   fetch(`nztcs_slim.json?v=${weekStamp}`).then(r => r.json()),
   fetch(`nzor_names.json?v=${weekStamp}`).then(r => r.json()),
   fetch(`nppa.json?v=${weekStamp}`).then(r => r.json()),
-]).then(([nztcsData, nzorData, nppaData]) => {
+  fetch(`nvs.json?v=${weekStamp}`).then(r => r.json()),
+]).then(([nztcsData, nzorData, nppaData, nvsRaw]) => {
+  nvsData = nvsRaw;
   nztcs = nztcsData;
   nppa  = new Set(nppaData);
   // Build species-level fallback: "genus species" → most threatened subspecies entry
@@ -608,8 +612,17 @@ Promise.all([
     if (list.length >= 2) ambiguousNames[k] = list;
   }
   buildIndex(nzorData);
+  // Add NVS 6-letter codes to the search index
+  if (nvsData) {
+    for (const [k, val] of Object.entries(nvsData)) {
+      const entry = { key: k, kd: k, n: k.toUpperCase(), cls: 'nvs', sci: val.sci };
+      if (val.pref) { entry.nvsPref = val.pref; entry.nvsPrefSci = val.prefSci; }
+      nzorIndex.push(entry);
+    }
+    nzorIndex.sort((a, b) => a.key < b.key ? -1 : 1);
+  }
   dot.className = 'status-dot';
-  dot.title = `NZOR: ${nzorIndex.length.toLocaleString()} names · NZTCS: ${Object.keys(nztcsData).length.toLocaleString()} entries · NPPA: ${nppa.size} pest plants`;
+  dot.title = `NZOR: ${nzorIndex.length.toLocaleString()} names · NZTCS: ${Object.keys(nztcsData).length.toLocaleString()} entries · NPPA: ${nppa.size} pest plants · NVS: ${Object.keys(nvsData).length.toLocaleString()} codes`;
 }).catch(() => {
   dot.className = 'status-dot error';
   dot.title = 'Data failed to load';
@@ -706,24 +719,29 @@ function renderDropdown(results) {
     const isPref   = !isVernac && !isSyn;
 
     // NZTCS badge: for vernacular use linked sci name, for synonym use accepted name
+    const isNvs   = item.cls === 'nvs';
     const isAmbig = item.cls === 'v' && !!ambiguousNames?.[item.key];
-    const entry   = isAmbig ? null : nztcsFor(item.sci, item.acc, item.key);
-    const isPest  = isAmbig ? false : isPestPlant(item.sci, item.acc, item.key);
+    const nvsLookupSci = isNvs ? (item.nvsPrefSci || item.sci) : null;
+    const entry   = (isAmbig || isNvs) ? (isNvs ? nztcsFor(nvsLookupSci) : null) : nztcsFor(item.sci, item.acc, item.key);
+    const isPest  = isNvs ? false : isAmbig ? false : isPestPlant(item.sci, item.acc, item.key);
 
     // Name display
     const dispName = item.n || capFirst(item.key);
-    const nameHtml = isVernac
-      ? escHtml(dispName)
-      : isPref
-        ? `<strong><em>${escHtml(dispName)}</em></strong>`
-        : `<em>${escHtml(dispName)}</em>`;
+    const nameHtml = isNvs
+      ? `<strong>${escHtml(dispName)}</strong>`
+      : isVernac
+        ? escHtml(dispName)
+        : isPref
+          ? `<strong><em>${escHtml(dispName)}</em></strong>`
+          : `<em>${escHtml(dispName)}</em>`;
 
     // Secondary tag: linked sci name (vernacular) or accepted name (synonym)
-    const secName  = isVernac ? item.sci : item.acc;
+    const secName  = isNvs ? (item.nvsPrefSci || item.sci) : isVernac ? item.sci : item.acc;
     const secHtml  = secName ? `<span class="syn-tag">${escHtml(secName)}</span>` : '';
-    const typeTag  = isVernac ? `<span class="rank-tag">vernacular</span>` : '';
+    const typeTag  = isNvs
+      ? `<span class="rank-tag nvs-tag">NVS${item.nvsPref ? ' → ' + item.nvsPref : ''}</span>`
+      : isVernac ? `<span class="rank-tag">vernacular</span>` : '';
     // Common name for scientific entries
-    const sciKey   = isPref ? item.key : (isSyn ? norm(item.acc || '') : '');
     const cnames   = isPref ? commonNamesFor(item.n || capFirst(item.key)) : { cn: '', mn: '' };
     const cnTag    = cnames.cn ? `<span class="via-tag">${escHtml(cnames.cn)}</span>` : '';
 
@@ -779,6 +797,31 @@ async function pick(i) {
   // Ambiguous vernacular — don't fetch NZOR, just list all possibilities
   if (item.cls === 'v' && ambiguousNames?.[item.key]) {
     showAmbiguousDetail(item);
+    return;
+  }
+
+  // NVS code — resolve to the scientific name's detail
+  if (item.cls === 'nvs') {
+    const resolvedSci = item.nvsPrefSci || item.sci;
+    const resolvedKey = norm(resolvedSci);
+    let sciItem = null;
+    let lo = 0, hi = nzorIndex.length - 1;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      if (nzorIndex[mid].key === resolvedKey)    { sciItem = nzorIndex[mid]; break; }
+      else if (nzorIndex[mid].key < resolvedKey)   lo = mid + 1;
+      else                                          hi = mid - 1;
+    }
+    detail.innerHTML = `<div class="spinner"><div class="spin-icon"></div>Loading…</div>`;
+    detail.hidden = false;
+    try {
+      const idToFetch = sciItem?.id || (sciItem?.cls === 'v' ? sciItem?.sciId : null);
+      if (idToFetch) {
+        const nameObj = await fetchId(idToFetch);
+        if (nameObj) { showDetail(nameObj); return; }
+      }
+    } catch {}
+    showLocalDetail(sciItem || { key: resolvedKey, n: resolvedSci });
     return;
   }
 
@@ -1026,6 +1069,7 @@ function batchMatch(rawName) {
 
   // Resolve to canonical scientific name
   const sciName = item.cls === 'v' ? item.sci
+    : item.cls === 'nvs' ? (item.nvsPrefSci || item.sci)
     : item.acc ? item.acc
     : (item.n || capFirst(item.key));
 
