@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-7ZSRQTPNJG"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-7ZSRQTPNJG');
+</script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>but is it threatened?</title>
@@ -369,7 +376,7 @@
 
 <header>
   <div>
-    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.33</span></h1>
+    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.35</span></h1>
     <p>NZOR names · NZTCS conservation status</p>
   </div>
   <div id="dot" class="status-dot loading" title="Loading NZTCS data…"></div>
@@ -690,8 +697,8 @@ input.addEventListener('input', () => {
   clearBtn.style.display = input.value ? 'block' : 'none';
   clearTimeout(debounce);
   const q = input.value.trim();
-  if (!q) { hideSug(); return; }
-  debounce = setTimeout(() => renderDropdown(nzorSearch(q)), 80);
+  if (q.length < 3) { hideSug(); return; }
+  debounce = setTimeout(() => renderDropdown(nzorSearch(q)), 250);
 });
 input.addEventListener('keydown', onKey);
 clearBtn.addEventListener('click', () => {
