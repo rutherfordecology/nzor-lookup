@@ -304,7 +304,7 @@
     .ambig-sci    { font-weight:500; margin-bottom:.15rem; }
     .ambig-names     { font-size:.8rem; color:#666; margin-bottom:.25rem; }
     .subsp-best      { outline:2px solid currentColor; outline-offset:-2px; }
-    .subsp-best-tag  { font-size:.7rem; opacity:.75; margin-left:auto; }
+    .subsp-best-tag  { font-size:.8rem; font-weight:700; letter-spacing:.02em; opacity:.9; margin-bottom:.4rem; }
     .subsp-best-note { font-size:.75rem; color:#888; margin-left:.3rem; }
     .results-table em { font-style:italic; }
   </style>
@@ -313,7 +313,7 @@
 
 <header>
   <div>
-    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.28</span></h1>
+    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.29</span></h1>
     <p>NZOR names · NZTCS conservation status</p>
   </div>
   <div id="dot" class="status-dot loading" title="Loading NZTCS data…"></div>
@@ -830,10 +830,10 @@ function nztcsBlock(entry) {
       const cls = catClass(sub.c);
       const isBest = i === 0;
       return `<div class="nztcs-box ${cls} ${isBest ? 'subsp-best' : ''}" style="margin-bottom:.4rem">
+        ${isBest ? `<div class="subsp-best-tag">★ Most threatened subspecies</div>` : ''}
         <div class="nztcs-header">
           <span class="nztcs-label">NZTCS</span>
           ${sub.y ? `<span class="nztcs-year">${sub.y}</span>` : ''}
-          ${isBest ? `<span class="subsp-best-tag">most threatened ↑</span>` : ''}
         </div>
         <div class="nztcs-status">${escHtml(sub.s)}</div>
         <div class="nztcs-cat">${escHtml(sub.c || '')}</div>
