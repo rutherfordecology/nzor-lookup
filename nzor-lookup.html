@@ -230,7 +230,7 @@
 
 <header>
   <div>
-    <h1>NZ Species Lookup <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.7</span></h1>
+    <h1>NZ Species Lookup <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.8</span></h1>
     <p>NZOR names · NZTCS conservation status</p>
   </div>
   <div id="dot" class="status-dot loading" title="Loading NZTCS data…"></div>
@@ -441,7 +441,7 @@ async function pick(i) {
   detail.hidden = false;
 
   const fetchId = async (id) => {
-    const r = await fetch(`${NZOR}/names/${id}`);
+    const r = await fetch(`${NZOR}/names/${id}`, { headers: { Accept: 'application/json' } });
     const d = await r.json();
     return d.names?.[0] ?? null;
   };
