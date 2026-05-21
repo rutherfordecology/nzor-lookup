@@ -302,7 +302,7 @@
 
 <header>
   <div>
-    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.19</span></h1>
+    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.20</span></h1>
     <p>NZOR names · NZTCS conservation status</p>
   </div>
   <div id="dot" class="status-dot loading" title="Loading NZTCS data…"></div>
@@ -413,13 +413,28 @@ Promise.all([
 ]).then(([nztcsData, nzorData, nppaData]) => {
   nztcs = nztcsData;
   nppa  = new Set(nppaData);
-  // Build species-level fallback: "genus species" → best subspecies entry
+  // Build species-level fallback: "genus species" → most threatened subspecies entry
+  const threatRank = s => {
+    const t = (s || '').toLowerCase();
+    if (t.includes('nationally critical'))   return 9;
+    if (t.includes('nationally endangered')) return 8;
+    if (t.includes('nationally vulnerable')) return 7;
+    if (t.includes('declining'))             return 6;
+    if (t.includes('recovering'))            return 5;
+    if (t.includes('relict'))                return 4;
+    if (t.includes('naturally uncommon'))    return 3;
+    if (t.includes('not threatened'))        return 2;
+    if (t.includes('extinct'))               return 1;
+    return 0;
+  };
   nztcsSpecies = {};
   for (const [key, val] of Object.entries(nztcsData)) {
     const parts = key.split(' ');
     if (parts.length >= 3) {
       const sp = parts[0] + ' ' + parts[1];
-      if (!nztcsSpecies[sp]) nztcsSpecies[sp] = val;
+      if (!nztcsSpecies[sp] || threatRank(val.s) > threatRank(nztcsSpecies[sp].s)) {
+        nztcsSpecies[sp] = { ...val, _subspecies: true };
+      }
     }
   }
   buildIndex(nzorData);
@@ -685,6 +700,8 @@ function nztcsBlock(entry) {
             <div style="font-size:.85rem;color:#aaa;padding:.4rem 0">Not listed in NZTCS</div>`;
   }
   const cls = catClass(entry.c);
+  const subNote = entry._subspecies
+    ? `<div style="font-size:.75rem;opacity:.7;margin-top:.3rem">Most threatened subspecies: <em>${escHtml(entry.n || '')}</em></div>` : '';
   return `<div class="dl-title">NZ Threat Classification</div>
     <div class="nztcs-box ${cls}">
       <div class="nztcs-header">
@@ -693,6 +710,7 @@ function nztcsBlock(entry) {
       </div>
       <div class="nztcs-status">${escHtml(entry.s)}</div>
       <div class="nztcs-cat">${escHtml(entry.c || '')}</div>
+      ${subNote}
     </div>`;
 }
 
