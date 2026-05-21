@@ -18,10 +18,12 @@ with open(SRC, encoding='utf-8') as f:
 
 slim = {}
 for key, val in data.items():
+    canonical = val.get('name')  # "Current Species Name" with proper casing
     entry = {
         's': val.get('status'),
         'c': val.get('category'),
         'y': val.get('year'),
+        'n': canonical,          # canonical name — present on all entries incl. aliases
     }
     cn = val.get('common')
     mn = val.get('maori')

@@ -229,7 +229,7 @@
 
 <header>
   <div>
-    <h1>NZ Species Lookup</h1>
+    <h1>NZ Species Lookup <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.2</span></h1>
     <p>NZOR names · NZTCS conservation status</p>
   </div>
   <div id="dot" class="status-dot loading" title="Loading NZTCS data…"></div>
@@ -451,12 +451,16 @@ function renderDropdown(nzor, vernac, nzorLoading) {
         allItems.push({ type: 'nzor-vernac', nzorRes: res, linked });
       } else {
         // Scientific name
-        const isSyn = n.nameId !== n.acceptedName?.nameId;
-        const entry = nztcsFor(n.partialName, n.acceptedName?.partialName);
+        const isSyn  = n.nameId !== n.acceptedName?.nameId;
+        const isPref = !isSyn && n.status === 'Current';
+        const entry  = nztcsFor(n.partialName, n.acceptedName?.partialName);
         const synHtml = isSyn
           ? `<span class="syn-tag">${escHtml(n.acceptedName?.partialName || '')}</span>` : '';
+        const nameHtml = isPref
+          ? `<strong>${n.formattedPartialName || escHtml(n.partialName)}</strong>`
+          : (n.formattedPartialName || escHtml(n.partialName));
         html += `<div class="suggestion" data-i="${allItems.length}" role="option">
-          <span class="sname">${n.formattedPartialName || escHtml(n.partialName)}</span>
+          <span class="sname">${nameHtml}</span>
           ${synHtml}
           <span class="rank-tag">${n.rank || ''}</span>
           ${badgeHtml(entry)}
@@ -474,8 +478,13 @@ function renderDropdown(nzor, vernac, nzorLoading) {
   if (uniqueVernac.length) {
     html += `<div class="section-sep">By common / Māori name</div>`;
     uniqueVernac.forEach(v => {
+      // isPref: the key IS the canonical NZTCS name (not an alias/previous name)
+      const isPref = v.n && norm(v.n) === v.key;
+      const nameHtml = isPref
+        ? `<strong>${escHtml(capFirst(v.key))}</strong>`
+        : escHtml(capFirst(v.key));
       html += `<div class="suggestion" data-i="${allItems.length}" role="option">
-        <span class="sname" style="font-style:italic">${escHtml(capFirst(v.key))}</span>
+        <span class="sname" style="font-style:italic">${nameHtml}</span>
         <span class="via-tag">${escHtml(v.matchedVia)}</span>
         ${badgeHtml(v)}
       </div>`;
