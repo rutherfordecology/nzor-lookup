@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NZ Species Lookup</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f6f8;
+      color: #1a1a2e;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1a3a4a;
+      color: #fff;
+      padding: 1.25rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    header h1 { font-size: 1.15rem; font-weight: 600; letter-spacing: 0.01em; }
+    header p  { font-size: 0.8rem; opacity: 0.6; margin-top: 0.1rem; }
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #4caf50; flex-shrink: 0; margin-left: auto;
+      transition: background .3s;
+    }
+    .status-dot.loading { background: #ff9800; animation: pulse 1s infinite; }
+    .status-dot.error   { background: #f44336; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    main {
+      max-width: 780px;
+      margin: 2.5rem auto;
+      padding: 0 1.25rem;
+    }
+
+    /* ── Search ─────────────────────────────────────────── */
+    .search-wrap {
+      position: relative;
+      margin-bottom: 1rem;
+    }
+    #search {
+      width: 100%;
+      padding: 0.85rem 3rem 0.85rem 1.1rem;
+      font-size: 1.05rem;
+      border: 2px solid #dde1e9;
+      border-radius: 10px;
+      background: #fff;
+      outline: none;
+      transition: border-color .15s;
+      box-shadow: 0 2px 8px rgba(0,0,0,.07);
+    }
+    #search:focus { border-color: #1a3a4a; }
+    #clear-btn {
+      position: absolute; right: 0.75rem; top: 50%;
+      transform: translateY(-50%);
+      background: none; border: none;
+      cursor: pointer; font-size: 1.1rem; color: #aaa;
+      display: none; line-height: 1;
+    }
+    #clear-btn:hover { color: #555; }
+
+    /* ── Dropdown ───────────────────────────────────────── */
+    #suggestions {
+      position: absolute;
+      top: calc(100% + 4px); left: 0; right: 0;
+      background: #fff;
+      border: 1.5px solid #dde1e9;
+      border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.12);
+      overflow: hidden;
+      z-index: 100;
+      max-height: 420px;
+      overflow-y: auto;
+    }
+    #suggestions[hidden] { display: none; }
+
+    .section-sep {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #aaa;
+      padding: 0.45rem 1rem 0.2rem;
+      border-top: 1px solid #f0f2f5;
+      background: #fafbfc;
+    }
+    .section-sep:first-child { border-top: none; }
+
+    .suggestion {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.6rem 1rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+      border-bottom: 1px solid #f0f2f5;
+      transition: background .1s;
+    }
+    .suggestion:last-child { border-bottom: none; }
+    .suggestion:hover, .suggestion.active { background: #f0f4f8; }
+
+    .sname { flex: 1; min-width: 0; font-style: italic; }
+    .via-tag {
+      font-size: 0.76rem; color: #888; white-space: nowrap;
+      font-style: normal;
+    }
+    .syn-tag {
+      font-size: 0.76rem; color: #aaa; white-space: nowrap;
+      font-style: normal;
+    }
+    .syn-tag::before { content: '→ '; }
+    .rank-tag {
+      font-size: 0.71rem; color: #bbb;
+      white-space: nowrap; text-transform: capitalize;
+      font-style: normal;
+    }
+
+    /* ── NZTCS badges ───────────────────────────────────── */
+    .badge {
+      font-size: 0.68rem; font-weight: 600;
+      padding: 0.18em 0.55em; border-radius: 4px;
+      white-space: nowrap; letter-spacing: 0.02em; flex-shrink: 0;
+    }
+    .cat-threatened               { background:#fde8e8; color:#c0392b; }
+    .cat-at-risk                  { background:#fef3e2; color:#c07000; }
+    .cat-not-threatened           { background:#e8f5e9; color:#2e7d32; }
+    .cat-data-deficient           { background:#f0f0f0; color:#777; }
+    .cat-extinct                  { background:#2c2c2c; color:#ddd; }
+    .cat-introduced-and-naturalised { background:#ede7f6; color:#6a1b9a; }
+    .cat-non-resident-native      { background:#e3f2fd; color:#1565c0; }
+    .cat-taxonomically-indistinct { background:#f5f5f5; color:#9e9e9e; }
+    .cat-not-assessed             { background:#f5f5f5; color:#9e9e9e; }
+
+    /* ── Loading / messages ─────────────────────────────── */
+    .spinner {
+      display:flex; align-items:center; gap:.5rem;
+      padding:.8rem 1rem; font-size:.85rem; color:#aaa;
+    }
+    .spin-icon {
+      width:14px; height:14px;
+      border:2px solid #ddd; border-top-color:#888;
+      border-radius:50%; animation:spin .6s linear infinite; flex-shrink:0;
+    }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .msg { padding:.8rem 1rem; font-size:.88rem; color:#888; }
+
+    /* ── Detail panel ───────────────────────────────────── */
+    #detail {
+      background:#fff; border:1.5px solid #dde1e9;
+      border-radius:12px; padding:1.5rem;
+      box-shadow:0 2px 12px rgba(0,0,0,.07);
+    }
+    #detail[hidden] { display:none; }
+
+    .detail-name { font-size:1.35rem; font-weight:600; font-style:italic; margin-bottom:.2rem; }
+    .detail-author { font-size:.85rem; color:#666; font-style:normal; margin-bottom:.75rem; }
+
+    .detail-meta {
+      display:flex; flex-wrap:wrap; gap:.5rem;
+      margin-bottom:1rem; align-items:center;
+    }
+    .pill {
+      font-size:.78rem; padding:.2em .65em; border-radius:20px;
+      background:#eef1f5; color:#555; text-transform:capitalize;
+    }
+    .pill.status-current   { background:#e8f5e9; color:#2e7d32; }
+    .pill.status-synonym   { background:#fff3e0; color:#bf6000; }
+    .pill.status-misapplied{ background:#fce4ec; color:#c62828; }
+
+    .accepted-row {
+      font-size:.88rem; color:#555; margin-bottom:1rem;
+      padding:.6rem .9rem;
+      background:#fffbf0; border-left:3px solid #f59e0b;
+      border-radius:0 6px 6px 0;
+    }
+    .accepted-row strong { color:#1a1a2e; }
+
+    .dl-title {
+      font-size:.72rem; font-weight:700; text-transform:uppercase;
+      letter-spacing:.08em; color:#aaa; margin:1rem 0 .5rem;
+    }
+
+    .hierarchy {
+      display:flex; flex-wrap:wrap; gap:.3rem;
+      align-items:center; font-size:.83rem; color:#555;
+    }
+    .hierarchy .sep { color:#ccc; }
+
+    .nztcs-box {
+      margin-top:1.1rem; padding:.9rem 1.1rem;
+      border-radius:8px; border:1.5px solid;
+    }
+    .nztcs-box.cat-threatened              { background:#fdf2f2; border-color:#f5bcbc; color:#c0392b; }
+    .nztcs-box.cat-at-risk                 { background:#fffaf2; border-color:#fce8b2; color:#c07000; }
+    .nztcs-box.cat-not-threatened          { background:#f2fbf4; border-color:#b2dfbb; color:#2e7d32; }
+    .nztcs-box.cat-data-deficient          { background:#f8f8f8; border-color:#ddd; color:#666; }
+    .nztcs-box.cat-extinct                 { background:#2c2c2c; border-color:#555; color:#ddd; }
+    .nztcs-box.cat-introduced-and-naturalised { background:#f5f0fc; border-color:#d4bff5; color:#6a1b9a; }
+    .nztcs-box.cat-non-resident-native     { background:#f0f7ff; border-color:#b3d4f5; color:#1565c0; }
+    .nztcs-box.cat-taxonomically-indistinct{ background:#f5f5f5; border-color:#e0e0e0; color:#757575; }
+    .nztcs-box.cat-not-assessed            { background:#f5f5f5; border-color:#e0e0e0; color:#757575; }
+
+    .nztcs-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:.3rem; }
+    .nztcs-label  { font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; opacity:.7; }
+    .nztcs-year   { font-size:.75rem; opacity:.7; }
+    .nztcs-status { font-size:1.05rem; font-weight:700; }
+    .nztcs-cat    { font-size:.82rem; opacity:.8; }
+
+    .nzor-link {
+      display:inline-block; margin-top:1rem;
+      font-size:.8rem; color:#1a3a4a;
+      text-decoration:none; border-bottom:1px solid #b0c4d0;
+    }
+    .nzor-link:hover { border-color:#1a3a4a; }
+
+    .hint {
+      text-align:center; color:#bbb;
+      font-size:.88rem; margin-top:2.5rem;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>NZ Species Lookup</h1>
+    <p>NZOR names · NZTCS conservation status</p>
+  </div>
+  <div id="dot" class="status-dot loading" title="Loading NZTCS data…"></div>
+</header>
+
+<main>
+  <div class="search-wrap">
+    <input id="search" type="text"
+      placeholder="Search by name — scientific, common, or Māori…"
+      autocomplete="off" spellcheck="false" aria-label="Search species">
+    <button id="clear-btn" title="Clear" aria-label="Clear">✕</button>
+    <div id="suggestions" hidden role="listbox"></div>
+  </div>
+
+  <div id="detail" hidden></div>
+  <p class="hint" id="hint">Search across all NZ organism names in NZOR, with conservation status from NZTCS.</p>
+</main>
+
+<script>
+const NZOR = 'https://data.nzor.org.nz/v1';
+
+let nztcs = null;          // slim lookup: lowercase-name → {s,c,y,cn?,mn?}
+let vernacIndex = [];      // [{key, displayName, cn, mn, s, c, y}] — vernacular-searchable entries
+let nzorResults = [];      // last NZOR API results
+let vernacResults = [];    // last vernacular search results
+let activeIdx = -1;
+let allItems = [];         // flattened ordered list for keyboard nav
+let debounce;
+
+// ── Load NZTCS ───────────────────────────────────────────────────────────────
+const dot = document.getElementById('dot');
+
+fetch('nztcs_slim.json')
+  .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+  .then(d => {
+    nztcs = d;
+    buildVernacIndex(d);
+    dot.className = 'status-dot';
+    dot.title = `NZTCS loaded — ${Object.keys(d).length.toLocaleString()} entries`;
+  })
+  .catch(() => {
+    dot.className = 'status-dot error';
+    dot.title = 'NZTCS data unavailable — conservation status will not be shown';
+  });
+
+function buildVernacIndex(d) {
+  // One entry per unique scientific name that has a common or Māori name.
+  // Keys in nztcs are lowercase scientific names; we keep the first one seen per name.
+  const seen = new Set();
+  for (const [key, val] of Object.entries(d)) {
+    if (!val.cn && !val.mn) continue;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    vernacIndex.push({ key, ...val });
+  }
+}
+
+// ── Normalisation ─────────────────────────────────────────────────────────────
+function norm(s) {
+  return s ? s.toLowerCase().replace(/\s+/g, ' ').trim() : '';
+}
+
+// Strip diacritics for fuzzy vernacular matching (kōtuku → kotuku)
+function normDia(s) {
+  return norm(s).normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
+// Capitalise first letter of a lowercase scientific name key for display
+function capFirst(s) {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}
+
+function catClass(cat) {
+  return cat ? 'cat-' + cat.toLowerCase().replace(/[^a-z]+/g, '-').replace(/-$/,'') : '';
+}
+
+function badgeHtml(entry) {
+  if (!entry) return '';
+  return `<span class="badge ${catClass(entry.c)}">${escHtml(entry.s || entry.c)}</span>`;
+}
+
+function nztcsFor(...names) {
+  if (!nztcs) return null;
+  for (const n of names) {
+    const hit = nztcs[norm(n)];
+    if (hit) return hit;
+  }
+  return null;
+}
+
+// Extract linked scientific names from a vernacular NZOR name object
+function linkedSciNames(name) {
+  const out = [];
+  for (const concept of (name.concepts || [])) {
+    for (const app of (concept.applications || [])) {
+      if (app.type === 'is vernacular for' && app.concept?.name?.partialName) {
+        out.push(app.concept.name);   // {nameId, partialName, rank, …}
+      }
+    }
+  }
+  return out;
+}
+
+// ── Vernacular search (client-side, NZTCS-derived) ───────────────────────────
+function vernacSearch(q) {
+  if (!q || q.length < 2 || !vernacIndex.length) return [];
+  const qn = normDia(q);
+  const exact = [], prefix = [], partial = [];
+
+  for (const item of vernacIndex) {
+    const cn = item.cn ? normDia(item.cn) : '';
+    const mn = item.mn ? normDia(item.mn) : '';
+    if (!cn && !mn) continue;
+
+    let matched = null;
+    for (const [raw, normalised] of [[item.cn, cn], [item.mn, mn]]) {
+      if (!raw) continue;
+      if (normalised === qn)            { matched = raw; break; }
+      if (normalised.startsWith(qn))    { matched = raw; }
+      else if (normalised.includes(qn)) { matched = matched || raw; }
+    }
+    if (!matched) continue;
+
+    const slot = normDia(matched) === qn ? exact
+               : normDia(matched).startsWith(qn) ? prefix : partial;
+    slot.push({ ...item, matchedVia: matched });
+    if (exact.length + prefix.length + partial.length >= 20) break;
+  }
+
+  return [...exact, ...prefix, ...partial].slice(0, 8);
+}
+
+// ── UI elements ───────────────────────────────────────────────────────────────
+const input    = document.getElementById('search');
+const sugBox   = document.getElementById('suggestions');
+const clearBtn = document.getElementById('clear-btn');
+const detail   = document.getElementById('detail');
+const hint     = document.getElementById('hint');
+
+input.addEventListener('input', () => {
+  clearBtn.style.display = input.value ? 'block' : 'none';
+  clearTimeout(debounce);
+  const q = input.value.trim();
+  if (!q) { hideSug(); return; }
+
+  // Show vernacular matches immediately (sync), then NZOR when it arrives
+  const vr = vernacSearch(q);
+  vernacResults = vr;
+  nzorResults = [];
+  renderDropdown([], vr, true);   // true = loading indicator for NZOR
+
+  debounce = setTimeout(() => doNzorSearch(q), 300);
+});
+
+input.addEventListener('keydown', onKey);
+
+clearBtn.addEventListener('click', () => {
+  input.value = '';
+  clearBtn.style.display = 'none';
+  hideSug();
+  detail.hidden = true;
+  hint.hidden = false;
+  input.focus();
+});
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.search-wrap')) hideSug();
+});
+
+// ── NZOR API search ───────────────────────────────────────────────────────────
+async function doNzorSearch(q) {
+  try {
+    const r = await fetch(`${NZOR}/names/search?query=${encodeURIComponent(q)}&pageSize=12`);
+    if (!r.ok) throw new Error(r.statusText);
+    const data = await r.json();
+    nzorResults = data.results || [];
+    renderDropdown(nzorResults, vernacResults, false);
+  } catch(e) {
+    nzorResults = [];
+    renderDropdown([], vernacResults, false);
+  }
+}
+
+// ── Render dropdown ───────────────────────────────────────────────────────────
+function renderDropdown(nzor, vernac, nzorLoading) {
+  // Deduplicate vernacular results against NZOR results
+  const nzorNames = new Set(nzor.map(r => norm(r.name.partialName)));
+  const uniqueVernac = vernac.filter(v => !nzorNames.has(v.key));
+
+  if (!nzor.length && !uniqueVernac.length && !nzorLoading) {
+    sugBox.innerHTML = `<div class="msg">No results found</div>`;
+    sugBox.hidden = false;
+    allItems = [];
+    return;
+  }
+
+  let html = '';
+  allItems = [];
+
+  // NZOR results — scientific and vernacular names mixed (already ranked by score)
+  if (nzor.length) {
+    html += `<div class="section-sep">NZOR names</div>`;
+    nzor.forEach(res => {
+      const n = res.name;
+      const isVernac = n.class === 'Vernacular Name';
+
+      if (isVernac) {
+        // Vernacular name — find linked scientific names via concepts.applications
+        const linked = linkedSciNames(n);
+        const entry = nztcsFor(...linked.map(l => l.partialName), n.partialName);
+        const sciHtml = linked.length
+          ? `<span class="syn-tag">${escHtml(linked[0].partialName)}</span>` : '';
+        html += `<div class="suggestion" data-i="${allItems.length}" role="option">
+          <span class="sname" style="font-style:normal">${escHtml(n.partialName)}</span>
+          ${sciHtml}
+          <span class="rank-tag">vernacular</span>
+          ${badgeHtml(entry)}
+        </div>`;
+        allItems.push({ type: 'nzor-vernac', nzorRes: res, linked });
+      } else {
+        // Scientific name
+        const isSyn = n.nameId !== n.acceptedName?.nameId;
+        const entry = nztcsFor(n.partialName, n.acceptedName?.partialName);
+        const synHtml = isSyn
+          ? `<span class="syn-tag">${escHtml(n.acceptedName?.partialName || '')}</span>` : '';
+        html += `<div class="suggestion" data-i="${allItems.length}" role="option">
+          <span class="sname">${n.formattedPartialName || escHtml(n.partialName)}</span>
+          ${synHtml}
+          <span class="rank-tag">${n.rank || ''}</span>
+          ${badgeHtml(entry)}
+        </div>`;
+        allItems.push({ type: 'nzor', nzorRes: res });
+      }
+    });
+  }
+
+  if (nzorLoading) {
+    html += `<div class="spinner"><div class="spin-icon"></div>Searching NZOR…</div>`;
+  }
+
+  // NZTCS vernacular-only results (names not already returned by NZOR)
+  if (uniqueVernac.length) {
+    html += `<div class="section-sep">By common / Māori name</div>`;
+    uniqueVernac.forEach(v => {
+      html += `<div class="suggestion" data-i="${allItems.length}" role="option">
+        <span class="sname" style="font-style:italic">${escHtml(capFirst(v.key))}</span>
+        <span class="via-tag">${escHtml(v.matchedVia)}</span>
+        ${badgeHtml(v)}
+      </div>`;
+      allItems.push({ type: 'vernac', vernacItem: v });
+    });
+  }
+
+  sugBox.innerHTML = html;
+  sugBox.querySelectorAll('.suggestion').forEach(el => {
+    el.addEventListener('click', () => pick(+el.dataset.i));
+  });
+  sugBox.hidden = false;
+  activeIdx = -1;
+}
+
+function hideSug() {
+  sugBox.hidden = true;
+  activeIdx = -1;
+  allItems = [];
+}
+
+// ── Keyboard nav ──────────────────────────────────────────────────────────────
+function onKey(e) {
+  const items = sugBox.querySelectorAll('.suggestion');
+  if (!items.length) return;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    setActive(Math.min(activeIdx + 1, items.length - 1), items);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    setActive(Math.max(activeIdx - 1, 0), items);
+  } else if (e.key === 'Enter' && activeIdx >= 0) {
+    e.preventDefault();
+    pick(activeIdx);
+  } else if (e.key === 'Escape') {
+    hideSug();
+  }
+}
+
+function setActive(i, items) {
+  items.forEach(el => el.classList.remove('active'));
+  activeIdx = i;
+  items[i].classList.add('active');
+  items[i].scrollIntoView({ block: 'nearest' });
+}
+
+// ── Select ────────────────────────────────────────────────────────────────────
+async function pick(i) {
+  const item = allItems[i];
+  if (!item) return;
+  hideSug();
+  hint.hidden = true;
+
+  if (item.type === 'nzor') {
+    showDetail(item.nzorRes);
+
+  } else if (item.type === 'nzor-vernac') {
+    // NZOR vernacular name — show the linked scientific name's detail if we have it
+    const linked = item.linked;
+    if (linked.length) {
+      detail.innerHTML = `<div class="spinner"><div class="spin-icon"></div>Loading…</div>`;
+      detail.hidden = false;
+      try {
+        const r = await fetch(`${NZOR}/names/${linked[0].nameId}`);
+        const data = await r.json();
+        if (data.names?.length) {
+          showDetail({ name: data.names[0] }, item.nzorRes.name.partialName);
+        } else {
+          showDetail(item.nzorRes);
+        }
+      } catch {
+        showDetail(item.nzorRes);
+      }
+    } else {
+      showDetail(item.nzorRes);
+    }
+
+  } else {
+    // NZTCS vernacular hit — search NZOR for the scientific name
+    detail.innerHTML = `<div class="spinner"><div class="spin-icon"></div>Loading…</div>`;
+    detail.hidden = false;
+    try {
+      const r = await fetch(`${NZOR}/names/search?query=${encodeURIComponent(capFirst(item.vernacItem.key))}&pageSize=1`);
+      const data = await r.json();
+      if (data.results?.length) {
+        showDetail(data.results[0]);
+      } else {
+        showVernacDetail(item.vernacItem);
+      }
+    } catch {
+      showVernacDetail(item.vernacItem);
+    }
+  }
+}
+
+// ── Detail — NZOR result ──────────────────────────────────────────────────────
+function showDetail(res, vernacularName) {
+  const n = res.name;
+  const isSyn = n.nameId !== n.acceptedName?.nameId;
+  const entry = nztcsFor(n.partialName, n.acceptedName?.partialName);
+
+  const s = (n.status || '').toLowerCase();
+  const statusCls = s.includes('current') ? 'status-current'
+    : s.includes('synonym') ? 'status-synonym'
+    : s.includes('misapplied') ? 'status-misapplied' : '';
+
+  const hier = (n.classificationHierarchy || [])
+    .filter(h => h.rank !== 'none' && h.partialName !== 'ROOT')
+    .map(h => `<span>${escHtml(h.partialName)}<span style="opacity:.45;font-size:.72em;margin-left:.2em">${h.rank}</span></span>`)
+    .join('<span class="sep"> › </span>');
+
+  const acceptedBlock = isSyn ? `
+    <div class="accepted-row">Synonym of <strong>${escHtml(n.acceptedName?.partialName || '')}</strong></div>` : '';
+
+  const vernacRow = vernacularName
+    ? `<div class="accepted-row" style="border-color:#6ab0d4">Also known as <strong>${escHtml(vernacularName)}</strong></div>` : '';
+
+  detail.innerHTML = `
+    <div class="detail-name">${n.formattedPartialName || escHtml(n.partialName)}</div>
+    ${n.authors ? `<div class="detail-author">${escHtml(n.authors)}</div>` : ''}
+    <div class="detail-meta">
+      ${n.rank    ? `<span class="pill">${escHtml(n.rank)}</span>` : ''}
+      ${n.status  ? `<span class="pill ${statusCls}">${escHtml(n.status)}</span>` : ''}
+      ${n.governingCode ? `<span class="pill">${escHtml(n.governingCode)}</span>` : ''}
+    </div>
+    ${acceptedBlock}
+    ${vernacRow}
+    ${hier ? `<div class="dl-title">Classification</div><div class="hierarchy">${hier}</div>` : ''}
+    ${nztcsBlock(entry)}
+    <a class="nzor-link" href="https://www.nzor.org.nz/names/${n.nameId}" target="_blank" rel="noopener">
+      View on NZOR ↗
+    </a>`;
+  detail.hidden = false;
+}
+
+// ── Detail — vernacular-only fallback (NZOR didn't return a match) ────────────
+function showVernacDetail(v) {
+  const entry = nztcs ? (nztcs[v.key] || v) : v;
+  detail.innerHTML = `
+    <div class="detail-name" style="font-style:normal">${escHtml(capFirst(v.key))}</div>
+    ${v.cn ? `<div class="detail-author">${escHtml(v.cn)}</div>` : ''}
+    <div class="detail-meta"><span class="pill">NZTCS record only</span></div>
+    ${nztcsBlock(entry)}`;
+  detail.hidden = false;
+}
+
+// ── NZTCS detail block ────────────────────────────────────────────────────────
+function nztcsBlock(entry) {
+  if (!entry || !entry.s) {
+    return `<div class="dl-title">NZ Threat Classification</div>
+            <div style="font-size:.85rem;color:#aaa;padding:.4rem 0">Not listed in NZTCS</div>`;
+  }
+  const cls = catClass(entry.c);
+  return `<div class="dl-title">NZ Threat Classification</div>
+    <div class="nztcs-box ${cls}">
+      <div class="nztcs-header">
+        <span class="nztcs-label">NZTCS</span>
+        ${entry.y ? `<span class="nztcs-year">${entry.y}</span>` : ''}
+      </div>
+      <div class="nztcs-status">${escHtml(entry.s)}</div>
+      <div class="nztcs-cat">${escHtml(entry.c || '')}</div>
+    </div>`;
+}
+
+// ── Util ──────────────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
