@@ -302,7 +302,7 @@
 
 <header>
   <div>
-    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.14</span></h1>
+    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.16</span></h1>
     <p>NZOR names · NZTCS conservation status</p>
   </div>
   <div id="dot" class="status-dot loading" title="Loading NZTCS data…"></div>
@@ -377,6 +377,23 @@ function isPestPlant(...names) {
   if (!nppa) return false;
   for (const n of names) { if (n && nppa.has(norm(n))) return true; }
   return false;
+}
+function commonNamesFor(sciName) {
+  if (!sciName) return { cn: '', mn: '' };
+  const entry = nztcs?.[norm(sciName)];
+  let cn = entry?.cn || '';
+  let mn = entry?.mn || '';
+  // NZOR fallback: find first vernacular entry linked to this sci name
+  if (!cn) {
+    const ns = norm(sciName);
+    for (const item of nzorIndex) {
+      if (item.cls === 'v' && norm(item.sci || '') === ns) {
+        cn = item.n || capFirst(item.key);
+        break;
+      }
+    }
+  }
+  return { cn, mn };
 }
 
 // ── Load data ────────────────────────────────────────────────────────────────
@@ -480,10 +497,14 @@ function renderDropdown(results) {
     const secName  = isVernac ? item.sci : item.acc;
     const secHtml  = secName ? `<span class="syn-tag">${escHtml(secName)}</span>` : '';
     const typeTag  = isVernac ? `<span class="rank-tag">vernacular</span>` : '';
+    // Common name for scientific entries
+    const sciKey   = isPref ? item.key : (isSyn ? norm(item.acc || '') : '');
+    const cnames   = isPref ? commonNamesFor(item.n || capFirst(item.key)) : { cn: '', mn: '' };
+    const cnTag    = cnames.cn ? `<span class="via-tag">${escHtml(cnames.cn)}</span>` : '';
 
     html += `<div class="suggestion" data-i="${allItems.length}" role="option">
       <span class="sname">${nameHtml}</span>
-      ${secHtml}${typeTag}
+      ${secHtml}${cnTag}${typeTag}
       ${isPest ? `<span class="badge cat-pest-plant">Pest plant</span>` : ''}
       ${badgeHtml(entry)}
     </div>`;
@@ -576,6 +597,9 @@ function showDetail(n, vernacularName) {
     .map(h => `<span>${escHtml(h.partialName)}<span style="opacity:.45;font-size:.72em;margin-left:.2em">${h.rank}</span></span>`)
     .join('<span class="sep"> › </span>');
 
+  const sciForNames  = isSyn ? (n.acceptedName?.partialName || n.partialName) : n.partialName;
+  const { cn, mn }   = commonNamesFor(sciForNames);
+
   const acceptedBlock = isSyn ? `
     <div class="accepted-row">Synonym of <strong>${escHtml(n.acceptedName?.partialName || '')}</strong></div>` : '';
 
@@ -585,6 +609,7 @@ function showDetail(n, vernacularName) {
   detail.innerHTML = `
     <div class="detail-name">${n.formattedPartialName || escHtml(n.partialName)}</div>
     ${n.authors ? `<div class="detail-author">${escHtml(n.authors)}</div>` : ''}
+    ${cn || mn ? `<div class="detail-author">${[cn, mn].filter(Boolean).map(escHtml).join(' · ')}</div>` : ''}
     ${origin ? `<div class="detail-meta"><span class="pill ${originCls}">${escHtml(origin)}</span></div>` : ''}
     ${acceptedBlock}
     ${vernacRow}
@@ -603,6 +628,7 @@ function showLocalDetail(item) {
   const dispName = item.n || capFirst(item.key);
   const entry    = nztcsFor(item.sci, item.acc, item.key);
   const isPest   = isPestPlant(item.sci, item.acc, item.key);
+  const { cn, mn } = commonNamesFor(item.sci || item.acc || (item.n || capFirst(item.key)));
 
   const secBlock = isVernac && item.sci
     ? `<div class="accepted-row" style="border-color:#6ab0d4">Vernacular name for <strong>${escHtml(item.sci)}</strong></div>`
@@ -612,6 +638,7 @@ function showLocalDetail(item) {
 
   detail.innerHTML = `
     <div class="detail-name" style="${isVernac ? 'font-style:normal' : ''}">${isVernac ? escHtml(dispName) : `<em>${escHtml(dispName)}</em>`}</div>
+    ${cn || mn ? `<div class="detail-author">${[cn, mn].filter(Boolean).map(escHtml).join(' · ')}</div>` : ''}
     <div class="detail-meta">
       ${isVernac ? '<span class="pill">Vernacular name</span>' : ''}
       ${isSyn ? '<span class="pill status-synonym">Synonym</span>' : ''}
