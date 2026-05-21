@@ -369,7 +369,7 @@
 
 <header>
   <div>
-    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.32</span></h1>
+    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.33</span></h1>
     <p>NZOR names · NZTCS conservation status</p>
   </div>
   <div id="dot" class="status-dot loading" title="Loading NZTCS data…"></div>
@@ -665,7 +665,8 @@ function buildIndex(d) {
 
 // ── Search ───────────────────────────────────────────────────────────────────
 function nzorSearch(q) {
-  if (!nzorIndex.length || q.length < 2) return [];
+  if (!nzorIndex.length) return [];
+  if (q.length < 3 && normDia(q) !== 'ti') return [];
   const qd = normDia(q);
   const prefix = [], contains = [];
   for (const item of nzorIndex) {
