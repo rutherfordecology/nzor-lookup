@@ -302,7 +302,7 @@
 
 <header>
   <div>
-    <h1>NZ Species Lookup <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.12</span></h1>
+    <h1>NZ Species Lookup <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.13</span></h1>
     <p>NZOR names · NZTCS conservation status</p>
   </div>
   <div id="dot" class="status-dot loading" title="Loading NZTCS data…"></div>
@@ -712,6 +712,9 @@ function batchMatch(rawName) {
   const common   = sciEntry?.cn || nztcsEntry?.cn || '';
   const maori    = sciEntry?.mn || nztcsEntry?.mn || '';
 
+  const exoticFromNztcs = (nztcsEntry?.c || '').toLowerCase().includes('introduced');
+  const origin = pest || exoticFromNztcs ? 'Exotic' : 'Unknown';
+
   return {
     input:    rawName,
     matched:  true,
@@ -722,6 +725,7 @@ function batchMatch(rawName) {
     category: nztcsEntry?.c || '',
     year:     nztcsEntry?.y || '',
     pest:     pest ? 'Yes' : '',
+    origin,
   };
 }
 
@@ -764,6 +768,7 @@ function renderBatchTable(results) {
       <td>${statusCell} ${pestCell}</td>
       <td>${escHtml(r.category)}</td>
       <td>${escHtml(r.year)}</td>
+      <td>${escHtml(r.origin)}</td>
     </tr>`;
   }).join('');
 
@@ -771,7 +776,7 @@ function renderBatchTable(results) {
     <table class="results-table">
       <thead><tr>
         <th>Input name</th><th>Scientific name</th><th>Common name</th>
-        <th>Māori name</th><th>Status</th><th>Category</th><th>Year</th>
+        <th>Māori name</th><th>Status</th><th>Category</th><th>Year</th><th>Origin</th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
@@ -779,10 +784,10 @@ function renderBatchTable(results) {
 
 // ── Download CSV ──────────────────────────────────────────────────────────────
 function downloadBatchCSV() {
-  const header = ['Input name','Scientific name','Common name','Māori name','NZTCS status','NZTCS category','Year','Pest plant (NPPA)'];
+  const header = ['Input name','Scientific name','Common name','Māori name','NZTCS status','NZTCS category','Year','Pest plant (NPPA)','Origin'];
   const csvRows = [header, ...batchResults.map(r => r.matched
-    ? [r.input, r.sci, r.common, r.maori, r.status, r.category, r.year, r.pest]
-    : [r.input, 'No match', '', '', '', '', '', '']
+    ? [r.input, r.sci, r.common, r.maori, r.status, r.category, r.year, r.pest, r.origin]
+    : [r.input, 'No match', '', '', '', '', '', '', '']
   )].map(row => row.map(c => `"${String(c ?? '').replace(/"/g,'""')}"`).join(','));
   const blob = new Blob(['﻿' + csvRows.join('\r\n')], { type: 'text/csv;charset=utf-8' });
   const a = document.createElement('a');
