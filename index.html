@@ -302,7 +302,7 @@
 
 <header>
   <div>
-    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.21</span></h1>
+    <h1>but is it threatened? <span style="font-size:0.65rem;font-weight:400;opacity:0.4;letter-spacing:0.05em;">v1.22</span></h1>
     <p>NZOR names · NZTCS conservation status</p>
   </div>
   <div id="dot" class="status-dot loading" title="Loading NZTCS data…"></div>
@@ -345,7 +345,8 @@
 const NZOR = 'https://data.nzor.org.nz/v1';
 
 let nztcs          = null;   // nztcs_slim.json: lowercase-name → {s,c,y,...}
-let nztcsSpecies   = null;   // species-level fallback: "genus species" → entry
+let nztcsStripped  = null;   // author-stripped keys: "genus species subsp" → entry
+let nztcsSpecies   = null;   // species-level fallback: "genus species" → most threatened entry
 let nppa           = null;   // nppa.json: Set of lowercase scientific names
 let nzorIndex      = [];     // sorted search index built from nzor_names.json
 let activeIdx = -1;
@@ -375,11 +376,13 @@ function nztcsFor(...names) {
     if (!n) continue;
     const k = norm(n);
     if (nztcs[k]) return nztcs[k];
+    if (nztcsStripped?.[k]) return nztcsStripped[k];
     if (nztcsSpecies?.[k]) return nztcsSpecies[k];
     // For subspecies-level names (3+ words), also try genus+species fallback
     const parts = k.split(' ');
     if (parts.length >= 3) {
       const sp = parts[0] + ' ' + parts[1];
+      if (nztcsStripped?.[sp]) return nztcsStripped[sp];
       if (nztcsSpecies?.[sp]) return nztcsSpecies[sp];
     }
   }
@@ -441,6 +444,14 @@ Promise.all([
       if (!nztcsSpecies[sp] || threatRank(val.s) > threatRank(nztcsSpecies[sp].s)) {
         nztcsSpecies[sp] = { ...val, _subspecies: true };
       }
+    }
+  }
+  // Build author-stripped map: "genus species subsp" (no author) → entry
+  nztcsStripped = {};
+  for (const [key, val] of Object.entries(nztcsData)) {
+    const stripped = key.replace(/\s*\([^)]+\)\s*$/, '').trim();
+    if (stripped !== key && !nztcsStripped[stripped]) {
+      nztcsStripped[stripped] = val;
     }
   }
   buildIndex(nzorData);
