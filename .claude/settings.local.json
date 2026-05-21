@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C C:/Users/User/GBIF-Record-Finder remote -v)",
+      "Bash(git -C C:/Users/User/GBIF-Record-Finder config --get github.user)",
+      "Bash(git -C C:/Users/User/GBIF-Record-Finder/.claude/worktrees/objective-bose-704ec8 status)",
+      "Bash(git -C C:/Users/User/GBIF-Record-Finder/.claude/worktrees/objective-bose-704ec8 log --oneline -3)",
+      "Bash(python3 C:/Users/User/GBIF-Record-Finder/.claude/worktrees/objective-bose-704ec8/build_nztcs_slim.py)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "WebFetch(domain:data.nzor.org.nz)",
+      "Bash(git mv *)",
+      "Bash(git rm *)",
+      "PowerShell(Get-Command gh -ErrorAction SilentlyContinue)"
+    ]
+  }
+}
